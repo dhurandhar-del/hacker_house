@@ -1,0 +1,7 @@
+.env
+*.csv
+!case_pack.csv
+data/staging/
+__pycache__/
+*.duckdb
+node_modules/

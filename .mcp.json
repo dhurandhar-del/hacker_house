@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "tigergraph": {
+      "command": "tigergraph-mcp",
+      "args": [],
+      "env": {}
+    }
+  }
+}

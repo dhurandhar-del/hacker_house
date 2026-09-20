@@ -1,0 +1,110 @@
+// Sentinel loading jobs. One job per staging file; several LOAD statements per
+// job so a single upload of the transaction file builds the Transaction vertex
+// and all six of its edges in one pass.
+// Staging files are produced by scripts/prepare_data.py. Column order below is
+// the contract between the two files -- change one, change the other.
+// HEADER is "false" because TigerGraph ignores HEADER="true" on the online POST
+// path used by runLoadingJobWithFile, which turns the header row into a vertex.
+// The loader strips the header before uploading instead.
+
+USE GRAPH @GRAPHNAME@
+
+CREATE LOADING JOB load_customers FOR GRAPH @GRAPHNAME@ {
+  DEFINE FILENAME f;
+  LOAD f TO VERTEX Customer VALUES($0, $1, $2, $3, $4) USING SEPARATOR=",", HEADER="false", EOL="\n", QUOTE="double";
+}
+
+CREATE LOADING JOB load_cards FOR GRAPH @GRAPHNAME@ {
+  DEFINE FILENAME f;
+  LOAD f
+    TO VERTEX Card VALUES($0, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
+                          $13, $14, $15, $16, $17, $18, $19, $20),
+    TO EDGE OWNS VALUES($1, $0)
+    USING SEPARATOR=",", HEADER="false", EOL="\n", QUOTE="double";
+}
+
+CREATE LOADING JOB load_devices FOR GRAPH @GRAPHNAME@ {
+  DEFINE FILENAME f;
+  LOAD f TO VERTEX DeviceProfile VALUES($0, $1, $2, $3, $4, $5, $6, $7, $8, $9)
+    USING SEPARATOR=",", HEADER="false", EOL="\n", QUOTE="double";
+}
+
+CREATE LOADING JOB load_regions FOR GRAPH @GRAPHNAME@ {
+  DEFINE FILENAME f;
+  LOAD f TO VERTEX BillingRegion VALUES($0, $1, $2, $3)
+    USING SEPARATOR=",", HEADER="false", EOL="\n", QUOTE="double";
+}
+
+CREATE LOADING JOB load_emails FOR GRAPH @GRAPHNAME@ {
+  DEFINE FILENAME f;
+  LOAD f TO VERTEX EmailDomain VALUES($0, $1)
+    USING SEPARATOR=",", HEADER="false", EOL="\n", QUOTE="double";
+}
+
+CREATE LOADING JOB load_products FOR GRAPH @GRAPHNAME@ {
+  DEFINE FILENAME f;
+  LOAD f TO VERTEX ProductCode VALUES($0, $1, $2)
+    USING SEPARATOR=",", HEADER="false", EOL="\n", QUOTE="double";
+}
+
+// txn_id,card_id,customer_id,ts,txn_dt,amt,product,channel,risk_score,addr1,
+// addr2,dist1,dist2,p_email,r_email,device_key,device_new,proxy,match_status,
+// c_feats,d_feats,m_feats,v_feats
+//   0      1        2        3   4     5    6       7        8       9
+//  10     11    12     13      14        15         16      17     18
+//  19      20      21      22
+CREATE LOADING JOB load_transactions FOR GRAPH @GRAPHNAME@ {
+  DEFINE FILENAME f;
+  LOAD f
+    TO VERTEX Transaction VALUES($0, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+                                 $11, $12, $13, $14, $15, $16, $17, $18, $19,
+                                 $20, $21, $22),
+    TO EDGE MADE VALUES($1, $0),
+    TO EDGE OF_PRODUCT VALUES($0, $6),
+    TO EDGE BILLED_IN VALUES($0, $9) WHERE $9 != "",
+    TO EDGE PURCHASER_EMAIL VALUES($0, $13) WHERE $13 != "",
+    TO EDGE RECIPIENT_EMAIL VALUES($0, $14) WHERE $14 != "",
+    TO EDGE FROM_DEVICE VALUES($0, $15) WHERE $15 != ""
+    USING SEPARATOR=",", HEADER="false", EOL="\n", QUOTE="double";
+}
+
+CREATE LOADING JOB load_next FOR GRAPH @GRAPHNAME@ {
+  DEFINE FILENAME f;
+  LOAD f TO EDGE NEXT VALUES($0, $1, $2)
+    USING SEPARATOR=",", HEADER="false", EOL="\n", QUOTE="double";
+}
+
+CREATE LOADING JOB load_closed_cases FOR GRAPH @GRAPHNAME@ {
+  DEFINE FILENAME f;
+  LOAD f
+    TO VERTEX ClosedCase VALUES($0, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, _),
+    TO EDGE CC_ON_CARD VALUES($0, $2)
+    USING SEPARATOR=",", HEADER="false", EOL="\n", QUOTE="double";
+}
+
+CREATE LOADING JOB load_cc_txns FOR GRAPH @GRAPHNAME@ {
+  DEFINE FILENAME f;
+  LOAD f TO EDGE CC_INVOLVES VALUES($0, $1)
+    USING SEPARATOR=",", HEADER="false", EOL="\n", QUOTE="double";
+}
+
+CREATE LOADING JOB load_cc_connected FOR GRAPH @GRAPHNAME@ {
+  DEFINE FILENAME f;
+  LOAD f TO EDGE CC_CONNECTED_TO VALUES($0, $1)
+    USING SEPARATOR=",", HEADER="false", EOL="\n", QUOTE="double";
+}
+
+CREATE LOADING JOB load_alerts FOR GRAPH @GRAPHNAME@ {
+  DEFINE FILENAME f;
+  LOAD f
+    TO VERTEX Alert VALUES($0, $1, $2, $3, $4, $5, $6, $7, $8),
+    TO EDGE ALERT_ON_CARD VALUES($0, $5),
+    TO EDGE ALERT_ON_TXN VALUES($0, $4)
+    USING SEPARATOR=",", HEADER="false", EOL="\n", QUOTE="double";
+}
+
+CREATE LOADING JOB load_meta FOR GRAPH @GRAPHNAME@ {
+  DEFINE FILENAME f;
+  LOAD f TO VERTEX MetaDoc VALUES($0, $1)
+    USING SEPARATOR=",", HEADER="false", EOL="\n", QUOTE="double";
+}
