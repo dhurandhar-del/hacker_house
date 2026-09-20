@@ -121,21 +121,45 @@ is no fraud label.
 | [case_pack.csv](case_pack.csv) | 4 KB | yes | The 20 exam alerts: case id, trigger type and text, flagged transaction, card, customer, risk score |
 | [closed_cases_history.csv](closed_cases_history.csv) | 2.7 MB | yes | 5,565 finished investigations, July-October. 4,665 confirmed fraud, 900 cleared. The only place ground truth is written down, and the agent's starting memory |
 | [identity.csv](identity.csv) | 27 MB | yes | 144,432 device and connection records, online transactions only, joined on `TransactionID` |
-| `transactions.csv` | **708 MB** | **no** | 590,742 transactions, all 393 Vesta columns plus `customer_id`, `ts`, `channel`, `risk_score`. Too large for GitHub (see below) |
+| `transactions.csv` | **708 MB** | **no** | 590,742 transactions, all 393 Vesta columns plus `customer_id`, `ts`, `channel`, `risk_score`. Over GitHub's limit — but `data/staging/` carries the projected form, so you only need this to regenerate staging |
+| [data/staging/](data/staging/) | 49 MB | yes | The thirteen loader-ready files derived from the above. **Enough on their own to rebuild the graph** |
 
-### Getting `transactions.csv`
+### Rebuilding the graph
 
-GitHub rejects any file over 100 MB, so the 708 MB transaction file is not in
-this repo. Download it from the organiser's dataset link and drop it in the
-repository root; everything else is here. Then:
+**The staged data is in the repo**, so you do not need the 708 MB source file to
+load TigerGraph:
+
+```bash
+cp .env.example .env                    # fill in TG_HOST, TG_SECRET, TG_GRAPH
+pip install pyTigerGraph duckdb python-dotenv pandas
+python scripts/load_to_tigergraph.py    # schema, jobs, load, verify -- ~1.3 min
+```
+
+`data/staging/` holds the thirteen narrow files the loader consumes, derived
+from the four source CSVs by `scripts/prepare_data.py`. The staged transaction
+file is 187 MB, over GitHub's limit, so the committed copy is **gzipped to
+30 MB** and the loader reads either form transparently.
+
+| Staged file | Size | Feeds |
+|---|---|---|
+| `transactions.csv.gz` | 30 MB | Transaction + 6 edge types |
+| `next_edges.csv` | 12 MB | NEXT |
+| `closed_cases.csv` | 2.6 MB | ClosedCase + CC_ON_CARD |
+| `cards.csv` | 2.0 MB | Card + OWNS |
+| `devices.csv`, `customers.csv`, `regions.csv`, `emails.csv`, `products.csv`, `alerts.csv`, `cc_txn_edges.csv`, `cc_connected_edges.csv`, `meta.csv` | < 1.5 MB each | the remaining vertices and edges |
+
+### Regenerating staging from source
+
+Only needed if you change the projection or the derived fields. Download
+`transactions.csv` from the organiser's dataset link, put it in the repository
+root, then:
 
 ```bash
 python scripts/prepare_data.py          # -> data/staging/*.csv, ~10 s
-python scripts/load_to_tigergraph.py    # schema, jobs, load, verify
 ```
 
-`prepare_data.py` reads all four files and regenerates every staging artefact,
-so nothing derived needs to be version-controlled.
+It rebuilds every staged file from the four source CSVs and runs five integrity
+checks, exiting non-zero if any fail.
 
 Roughly half the exam cases are legitimate, and an agent that blocks everything
 scores badly. That constraint drives most of the design.

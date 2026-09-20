@@ -1,15 +1,22 @@
 # Credentials
 .env
 
-# Derived artefacts: scripts/prepare_data.py regenerates all of these in ~10s
-data/staging/
-*.duckdb
+# The source dataset: 708 MB, over GitHub's hard 100 MB per-file limit, so it
+# cannot be committed. See "Getting transactions.csv" in README.md. The other
+# three dataset files are small enough and ARE tracked.
+/transactions.csv
+
+# data/staging/ IS tracked, so the graph can be rebuilt without the 708 MB
+# source. Two exceptions:
+#   - the staged transaction file is 187 MB, so the gzipped twin is committed
+#     instead and the loader reads either
+#   - run logs and scratch files are noise
+data/staging/transactions.csv
+data/staging/*.log
+data/staging/_*.parquet
+
 __pycache__/
 .pytest_cache/
+*.duckdb
 node_modules/
 ui/.next/
-
-# transactions.csv is 708 MB, over GitHub's hard 100 MB per-file limit, so it
-# cannot be committed. See "Getting the data" in README.md. The other three
-# dataset files are small enough and ARE tracked.
-transactions.csv

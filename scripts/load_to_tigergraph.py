@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import gzip
 import re
 import sys
 import tempfile
@@ -119,6 +120,31 @@ def _indent(text: str, n: int = 2) -> str:
     return "\n".join(pad + line for line in text.strip().splitlines() if line.strip())
 
 
+def open_staging(path: Path):
+    """Open a staging file, transparently falling back to its .gz twin.
+
+    data/staging/transactions.csv is 187 MB, over GitHub's 100 MB per-file
+    limit, so the committed copy is gzipped (30 MB). prepare_data.py writes the
+    plain file; whichever is present is used.
+    """
+    if path.exists():
+        return path.open("r", encoding="utf-8", newline="")
+    gz = path.with_suffix(path.suffix + ".gz")
+    if gz.exists():
+        return gzip.open(gz, "rt", encoding="utf-8", newline="")
+    raise SystemExit(
+        f"missing staging file {path} (and {gz.name}) -- run scripts/prepare_data.py first"
+    )
+
+
+def staging_size_mb(path: Path) -> float:
+    """Uncompressed size where we have it, else the compressed size."""
+    if path.exists():
+        return path.stat().st_size / 1e6
+    gz = path.with_suffix(path.suffix + ".gz")
+    return gz.stat().st_size / 1e6 * 6 if gz.exists() else 0.0
+
+
 def chunk_csv(path: Path, rows_per_chunk: int):
     """Yield (chunk_index, temp_path, n_rows) with the header row removed.
 
@@ -126,7 +152,7 @@ def chunk_csv(path: Path, rows_per_chunk: int):
     TigerGraph ignores HEADER="true" on the online POST path used by
     runLoadingJobWithFile and would insert the header row as a vertex.
     """
-    with path.open("r", encoding="utf-8", newline="") as fh:
+    with open_staging(path) as fh:
         reader = csv.reader(fh)
         next(reader)  # discard header
         idx, buf = 0, []
@@ -149,10 +175,9 @@ def _write_chunk(rows, idx):
 
 def run_job(conn, job: str, filename: str, describes: str) -> None:
     path = cfg.STAGING / filename
-    if not path.exists():
+    size_mb = staging_size_mb(path)
+    if size_mb == 0.0:
         raise SystemExit(f"missing staging file {path} -- run scripts/prepare_data.py first")
-
-    size_mb = path.stat().st_size / 1e6
     print(f"\n  {job:<20} {filename:<24} {size_mb:>7.1f} MB  -> {describes}")
     t0 = time.time()
 
