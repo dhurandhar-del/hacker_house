@@ -1,7 +1,15 @@
+# Credentials
 .env
-*.csv
-!case_pack.csv
+
+# Derived artefacts: scripts/prepare_data.py regenerates all of these in ~10s
 data/staging/
-__pycache__/
 *.duckdb
+__pycache__/
+.pytest_cache/
 node_modules/
+ui/.next/
+
+# transactions.csv is 708 MB, over GitHub's hard 100 MB per-file limit, so it
+# cannot be committed. See "Getting the data" in README.md. The other three
+# dataset files are small enough and ARE tracked.
+transactions.csv

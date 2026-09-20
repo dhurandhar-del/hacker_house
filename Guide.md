@@ -1,3 +1,46 @@
+<!-- ANNOTATION ADDED BY THIS REPO. Everything from the heading below is the
+     organiser's document, unaltered. -->
+
+> ## What this file is
+>
+> **The organiser's brief for the TigerGraph Agentic Fraud Investigation
+> challenge, Hacker House Goa.** It is the specification the whole build
+> answers to, and it is the authority whenever this repo's documents and this
+> one disagree.
+>
+> It contains, in order:
+>
+> | Section | What it gives you |
+> |---|---|
+> | **The task** | What the agent must produce: a case, a SAR when policy demands one, and a next-best-action recorded both before and after evidence is requested |
+> | **Your first two hours** | The organiser's recommended order of work. Notably: load the graph, connect MCP, then **investigate one case by hand before writing any agent code** |
+> | **Glossary** | Definitions that are binding, not casual: risk score, closed case, trigger, pattern, channel, exposure, case vs SAR, approval route, GraphRAG |
+> | **Files in this folder** | The four dataset files and what is in each |
+> | **The original columns** | Vesta's column groups. The C, D, M, V and numeric id families are real model features with **no published names**, to be cited honestly as such |
+> | **The columns we added** | `customer_id`, `ts`, `channel`, `risk_score` -- and the warning that the score is an input, never an answer |
+> | **The five known fraud patterns** | Card testing, card-not-present, CNP from a new device, out-of-region use, account takeover. Explicitly *not* an exhaustive list |
+> | **Regulatory references** | FinCEN, FATF, FFIEC and OFAC source documents, including the SAR narrative standard the `sar.narrative` field is judged against |
+> | **Things to know** | The traps, stated plainly: half the cases are legitimate, an agent that blocks everything scores badly, devices and regions connect people |
+> | **Rules** | Including the disqualifying one: never use the public IEEE-CIS / Kaggle files to recover outcomes |
+> | **Suggested graph schema** | A starting point the organiser expects you to change; schema design is part of the engineering |
+> | **Fraud Policy** | The operating rules R1-R10, the 14 action identifiers, and the `auto` / `L1` / `L2` routing table. **Action names and routes in answer files must match these exactly** |
+> | **Answer Format** | The JSON contract for all 20 files, field by field, with a worked example. Missing fields score zero for that part |
+> | **The 20 cases** | The exam: case id, trigger, flagged transaction, card, customer and score |
+>
+> **The investigation sequence the agent has to perform**, as the brief defines
+> it: trigger, investigate, gather evidence, assess uncertainty, gather more
+> evidence if needed, take one or more next actions, explain the decision, and
+> update case memory.
+>
+> How this repo implements it: [docs/PRD.md](docs/PRD.md) for the design,
+> [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) for the ordered steps, and
+> [docs/SESSION_SUMMARY.md](docs/SESSION_SUMMARY.md) for what is built so far.
+> The policy in section "Fraud Policy" below is transcribed into code in
+> [sentinel/policy.py](sentinel/policy.py), with one test per rule in
+> [tests/test_policy.py](tests/test_policy.py).
+
+---
+
 # TigerGraph × Hacker House Goa — Fraud Investigation Dataset (IEEE-CIS edition)
 
 Six months of card transactions from the **IEEE-CIS Fraud Detection** dataset, published by Vesta Corporation, with **every original row and every original column kept**. Two things changed: the yes/no fraud label is gone, and every transaction carries a **risk score** from the bank's detection model instead. On top sit the things an investigation needs: customers, a real calendar, a channel, the bank's closed cases, and the 20 cases you'll be judged on.

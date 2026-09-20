@@ -56,12 +56,35 @@ in an answer file is checked to exist in the graph before the file is written.
 this dataset were transformed specifically so outcomes cannot be looked up there.
 Using them is explicit disqualification.
 
-## Data
+## The dataset
 
-IEEE-CIS Fraud Detection (Vesta Corporation), as repackaged by TigerGraph for
-Hacker House Goa 2026: 590,742 transactions over six months from 13,553 customers,
-144,432 identity records, 5,565 closed investigations, and 20 exam alerts. Every
-transaction carries a risk score from the bank's model and no fraud label.
+IEEE-CIS Fraud Detection (Vesta Corporation), repackaged by TigerGraph for
+Hacker House Goa 2026: 590,742 transactions over six months from 13,553
+customers, 144,432 identity records, 5,565 closed investigations, and 20 exam
+alerts. Every transaction carries a risk score from the bank's model and there
+is no fraud label.
 
-The raw CSVs are gitignored. Roughly half the exam cases are legitimate, and an agent
-that blocks everything scores badly — that constraint drives most of the design.
+| File | Size | In this repo | What it is |
+|---|---|---|---|
+| [Guide.md](Guide.md) | 39 KB | yes | **The organiser's brief.** Task, glossary, column reference, the five fraud patterns, regulatory sources, the Fraud Policy (R1-R10, action names, approval routes) and the answer-file contract. The authority for everything here |
+| [case_pack.csv](case_pack.csv) | 4 KB | yes | The 20 exam alerts: case id, trigger type and text, flagged transaction, card, customer, risk score |
+| [closed_cases_history.csv](closed_cases_history.csv) | 2.7 MB | yes | 5,565 finished investigations, July-October. 4,665 confirmed fraud, 900 cleared. The only place ground truth is written down, and the agent's starting memory |
+| [identity.csv](identity.csv) | 27 MB | yes | 144,432 device and connection records, online transactions only, joined on `TransactionID` |
+| `transactions.csv` | **708 MB** | **no** | 590,742 transactions, all 393 Vesta columns plus `customer_id`, `ts`, `channel`, `risk_score`. Too large for GitHub (see below) |
+
+### Getting `transactions.csv`
+
+GitHub rejects any file over 100 MB, so the 708 MB transaction file is not in
+this repo. Download it from the organiser's dataset link and drop it in the
+repository root; everything else is here. Then:
+
+```bash
+python scripts/prepare_data.py          # -> data/staging/*.csv, ~10 s
+python scripts/load_to_tigergraph.py    # schema, jobs, load, verify
+```
+
+`prepare_data.py` reads all four files and regenerates every staging artefact,
+so nothing derived needs to be version-controlled.
+
+Roughly half the exam cases are legitimate, and an agent that blocks everything
+scores badly. That constraint drives most of the design.
