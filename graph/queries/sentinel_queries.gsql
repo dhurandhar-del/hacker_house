@@ -1,0 +1,379 @@
+// Sentinel's graph tools. Each query is one thing the agent can ask the graph,
+// and the invocation string of each becomes the `ref` on an evidence item, so an
+// analyst can re-run any line of a case file.
+//
+// Design rule: these return FACTS, not verdicts. Thresholds that the policy cares
+// about (R5's "three or more", R1's 0.70) are applied in sentinel/policy.py where
+// they can be unit-tested. A query may compute a convenience flag, but nothing
+// downstream is allowed to treat that flag as the decision.
+//
+// Vertex-typed parameters seed the traversal in O(1); string parameters mean the
+// query scans that vertex type, which is only acceptable for the small ones
+// (ClosedCase at 5,565, BillingRegion at 332).
+//
+// Installed by: python scripts/install_queries.py
+
+// ---------------------------------------------------------------- 1. the alert
+
+CREATE OR REPLACE QUERY txn_detail(VERTEX<Transaction> t_in) FOR GRAPH GRAPH_GOA SYNTAX v1 {
+  S = {t_in};
+  R = SELECT t FROM S:t;
+  PRINT R AS txn;
+  D = SELECT d FROM S:t -(FROM_DEVICE:e)- DeviceProfile:d;
+  PRINT D AS device;
+  C = SELECT c FROM S:t -(MADE_BY:e)- Card:c;
+  PRINT C AS card;
+}
+
+// ------------------------------------------------------- 2. what normal means
+
+CREATE OR REPLACE QUERY card_baseline(VERTEX<Card> c_in) FOR GRAPH GRAPH_GOA SYNTAX v1 {
+  S = {c_in};
+  R = SELECT c FROM S:c;
+  PRINT R AS card;
+  CU = SELECT cu FROM S:c -(OWNED_BY:e)- Customer:cu;
+  PRINT CU AS customer;
+  SIB = SELECT c2 FROM CU:cu -(OWNS:e2)- Card:c2;
+  PRINT SIB[SIB.card_id, SIB.card_type, SIB.network, SIB.n_txns, SIB.median_amt] AS sibling_cards;
+}
+
+// ------------------------------------------------- 3. neighbours of the alert
+
+CREATE OR REPLACE QUERY card_window(VERTEX<Card> c_in, DATETIME center, INT hours)
+  FOR GRAPH GRAPH_GOA SYNTAX v1 {
+  S = {c_in};
+  T = SELECT t FROM S:c -(MADE:e)- Transaction:t
+      WHERE abs(datetime_diff(t.ts, center)) <= hours * 3600
+      ORDER BY t.ts ASC;
+  PRINT T[T.txn_id, T.ts, T.amt, T.product, T.channel, T.risk_score, T.addr1, T.addr2,
+          T.dist1, T.device_key, T.device_new, T.proxy_flag, T.m_feats] AS window;
+}
+
+// -------------------------------------------------------- 4. card testing (R5)
+
+CREATE OR REPLACE QUERY card_testing_probe(VERTEX<Card> c_in, DATETIME center, DOUBLE small_amt)
+  FOR GRAPH GRAPH_GOA SYNTAX v1 {
+  SumAccum<INT> @@n_small_1h;
+  SumAccum<INT> @@n_small_24h;
+  MaxAccum<DOUBLE> @@largest_after;
+  ListAccum<STRING> @@small_ids;
+  ListAccum<STRING> @@after_ids;
+  S = {c_in};
+  T = SELECT t FROM S:c -(MADE:e)- Transaction:t
+      WHERE t.channel == "online"
+      ACCUM
+        IF t.amt <= small_amt AND datetime_diff(center, t.ts) >= 0
+           AND datetime_diff(center, t.ts) <= 3600
+          THEN @@n_small_1h += 1, @@small_ids += t.txn_id
+        END,
+        IF t.amt <= small_amt AND datetime_diff(center, t.ts) >= 0
+           AND datetime_diff(center, t.ts) <= 86400
+          THEN @@n_small_24h += 1
+        END,
+        IF t.amt > 100 AND datetime_diff(t.ts, center) >= 0
+           AND datetime_diff(t.ts, center) <= 86400
+          THEN @@largest_after += t.amt, @@after_ids += t.txn_id
+        END;
+  PRINT @@n_small_1h AS small_online_auths_1h,
+        @@n_small_24h AS small_online_auths_24h,
+        @@small_ids AS small_txn_ids,
+        @@largest_after AS largest_purchase_after,
+        @@after_ids AS purchases_after_ids;
+}
+
+// ------------------------------- 5. region novelty, evaluated AS OF a moment
+// Novelty is time-dependent. A region with no history in October can be routine
+// by December; scanning the whole file would clear real fraud and flag real
+// customers. See docs/HAND_INVESTIGATION.md.
+
+CREATE OR REPLACE QUERY region_novelty(VERTEX<Card> c_in, STRING region, DATETIME as_of)
+  FOR GRAPH GRAPH_GOA SYNTAX v1 {
+  SumAccum<INT> @@prior_in_region;
+  SumAccum<INT> @@total_in_region;
+  SumAccum<INT> @@prior_total;
+  SumAccum<INT> @@elsewhere_24h;
+  SetAccum<STRING> @@other_regions_24h;
+  MinAccum<DATETIME> @@first_in_region;
+  MaxAccum<DATETIME> @@last_in_region_before;
+  S = {c_in};
+  T = SELECT t FROM S:c -(MADE:e)- Transaction:t
+      ACCUM
+        IF t.ts < as_of THEN @@prior_total += 1 END,
+        IF t.addr1 == region THEN
+          @@total_in_region += 1,
+          @@first_in_region += t.ts,
+          IF t.ts < as_of THEN
+            @@prior_in_region += 1,
+            @@last_in_region_before += t.ts
+          END
+        END,
+        // Card-present activity elsewhere within a day is the trip-versus-clone
+        // discriminator: a cardholder cannot be in two billing regions at once.
+        IF t.addr1 != region AND t.addr1 != "" AND t.channel == "in_person"
+           AND abs(datetime_diff(t.ts, as_of)) <= 86400 THEN
+          @@elsewhere_24h += 1,
+          @@other_regions_24h += t.addr1
+        END;
+  PRINT @@prior_in_region AS prior_txns_in_region,
+        @@total_in_region AS total_txns_in_region,
+        @@prior_total AS prior_txns_on_card,
+        @@first_in_region AS first_seen_in_region,
+        @@last_in_region_before AS last_in_region_before_alert,
+        @@elsewhere_24h AS in_person_elsewhere_24h,
+        @@other_regions_24h AS other_regions_24h;
+}
+
+// ------------------------------------------- 6. is this amount ordinary here?
+// The strongest exonerating signal found in the hand investigation.
+
+CREATE OR REPLACE QUERY amount_band_probe(VERTEX<Card> c_in, DOUBLE amt, DOUBLE tol,
+                                          DATETIME as_of) FOR GRAPH GRAPH_GOA SYNTAX v1 {
+  SumAccum<INT> @@in_band_before;
+  SumAccum<INT> @@in_band_total;
+  SumAccum<INT> @@above_p95;
+  SumAccum<INT> @@prior_total;
+  S = {c_in};
+  C = SELECT c FROM S:c;
+  T = SELECT t FROM S:c -(MADE:e)- Transaction:t
+      ACCUM
+        IF t.ts < as_of THEN @@prior_total += 1 END,
+        IF t.amt >= amt - tol AND t.amt <= amt + tol THEN
+          @@in_band_total += 1,
+          IF t.ts < as_of THEN @@in_band_before += 1 END
+        END;
+  PRINT @@in_band_before AS prior_charges_in_band,
+        @@in_band_total AS total_charges_in_band,
+        @@prior_total AS prior_txns_on_card,
+        C[C.median_amt, C.p95_amt, C.max_amt] AS card_amounts;
+}
+
+// ------------------------------------------------------- 7. device on the alert
+
+CREATE OR REPLACE QUERY device_novelty(VERTEX<Transaction> t_in) FOR GRAPH GRAPH_GOA SYNTAX v1 {
+  MaxAccum<STRING> @@dev;
+  MaxAccum<DATETIME> @@ts0;
+  SumAccum<INT> @@prior_same_device;
+  SumAccum<INT> @@prior_online;
+  SumAccum<INT> @@prior_total;
+  S = {t_in};
+  X = SELECT t FROM S:t ACCUM @@dev += t.device_key, @@ts0 += t.ts;
+  R = SELECT t FROM S:t;
+  PRINT R[R.txn_id, R.device_key, R.device_new, R.proxy_flag, R.match_status,
+          R.channel, R.product] AS flags;
+  C = SELECT c FROM S:t -(MADE_BY:e)- Card:c;
+  T = SELECT t2 FROM C:c -(MADE:e)- Transaction:t2 WHERE t2.ts < @@ts0
+      ACCUM
+        @@prior_total += 1,
+        IF t2.device_key == @@dev AND t2.device_key != "" THEN @@prior_same_device += 1 END,
+        IF t2.channel == "online" THEN @@prior_online += 1 END;
+  PRINT @@prior_same_device AS prior_txns_this_device_on_card,
+        @@prior_online AS prior_online_txns_on_card,
+        @@prior_total AS prior_txns_on_card;
+}
+
+// -------------------------------------------- 8. who else used this device (R6)
+
+CREATE OR REPLACE QUERY device_neighbors(VERTEX<DeviceProfile> d_in, DATETIME center, INT days)
+  FOR GRAPH GRAPH_GOA SYNTAX v1 {
+  SumAccum<INT> @hits;
+  MaxAccum<DOUBLE> @max_risk;
+  SumAccum<DOUBLE> @amount;
+  S = {d_in};
+  R = SELECT d FROM S:d;
+  PRINT R AS device;
+  // n_cards is the specificity of this profile. A profile spanning hundreds of
+  // cards is a browser fingerprint, not a device, and links nobody to anybody.
+  PRINT R[R.n_cards] AS profile_spans_cards;
+  T = SELECT t FROM S:d -(DEVICE_USED_BY:e)- Transaction:t
+      WHERE abs(datetime_diff(t.ts, center)) <= days * 86400;
+  PRINT T.size() AS txns_in_window;
+  C = SELECT c FROM T:t -(MADE_BY:e)- Card:c
+      ACCUM c.@hits += 1, c.@max_risk += t.risk_score, c.@amount += t.amt
+      ORDER BY c.@hits DESC LIMIT 50;
+  PRINT C[C.card_id, C.customer_id, C.@hits, C.@max_risk, C.@amount] AS cards_on_device;
+}
+
+// ------------------- 9. region cluster, always against a matched baseline (R6)
+// A raw count of high-risk transactions means nothing on its own: 18 of 608
+// looks alarming until the same window a month earlier shows 13 of 552.
+
+CREATE OR REPLACE QUERY region_cluster(VERTEX<BillingRegion> r_in, DATETIME win_from,
+                                       DATETIME win_to, DATETIME base_from, DATETIME base_to,
+                                       DOUBLE risk_thresh) FOR GRAPH GRAPH_GOA SYNTAX v1 {
+  SumAccum<INT> @@win_n;      SumAccum<INT> @@win_high;
+  SumAccum<INT> @@base_n;     SumAccum<INT> @@base_high;
+  SetAccum<STRING> @@win_high_cards;
+  ListAccum<STRING> @@win_high_txns;
+  S = {r_in};
+  T = SELECT t FROM S:r -(REGION_OF:e)- Transaction:t
+      ACCUM
+        IF t.ts >= win_from AND t.ts <= win_to THEN
+          @@win_n += 1,
+          IF t.risk_score >= risk_thresh THEN
+            @@win_high += 1, @@win_high_cards += t.card_id, @@win_high_txns += t.txn_id
+          END
+        END,
+        IF t.ts >= base_from AND t.ts <= base_to THEN
+          @@base_n += 1,
+          IF t.risk_score >= risk_thresh THEN @@base_high += 1 END
+        END;
+  PRINT @@win_n AS window_txns, @@win_high AS window_high_risk,
+        @@base_n AS baseline_txns, @@base_high AS baseline_high_risk,
+        @@win_high_cards AS window_high_risk_cards,
+        @@win_high_txns AS window_high_risk_txns;
+}
+
+// ------------------------------------------- 10. recipient-email fan-in (R6)
+
+CREATE OR REPLACE QUERY email_cluster(VERTEX<EmailDomain> e_in, DATETIME center, INT days,
+                                      DOUBLE risk_thresh) FOR GRAPH GRAPH_GOA SYNTAX v1 {
+  SumAccum<INT> @@n;
+  SumAccum<INT> @@n_high;
+  SetAccum<STRING> @@cards;
+  S = {e_in};
+  T = SELECT t FROM S:e -(R_EMAIL_OF:e2)- Transaction:t
+      WHERE abs(datetime_diff(t.ts, center)) <= days * 86400
+      ACCUM
+        @@n += 1, @@cards += t.card_id,
+        IF t.risk_score >= risk_thresh THEN @@n_high += 1 END;
+  PRINT @@n AS txns_in_window, @@n_high AS high_risk_in_window,
+        @@cards.size() AS distinct_cards;
+}
+
+// ------------------------------------------ 11. ring expansion via shared device
+// max_device_cards is not a tuning knob, it is a correctness gate. 116 of the
+// 9,704 device profiles are generic browser fingerprints shared by hundreds of
+// cards each ("mobile safari generic" covers 711), and they account for 24,653
+// of the card-to-device links. Linking cards through those would invent a ring
+// on almost every online case. Profiles at or below 20 cards cover 94.6% of
+// profiles and are specific enough to mean something.
+
+CREATE OR REPLACE QUERY ring_expand(VERTEX<Card> c_in, DATETIME center, INT days,
+                                    INT max_device_cards) FOR GRAPH GRAPH_GOA SYNTAX v1 {
+  SumAccum<INT> @shared;
+  MaxAccum<DOUBLE> @max_risk;
+  SetAccum<STRING> @via_device;
+  S = {c_in};
+  T = SELECT t FROM S:c -(MADE:e)- Transaction:t
+      WHERE t.device_key != "" AND abs(datetime_diff(t.ts, center)) <= days * 86400;
+  DALL = SELECT d FROM T:t -(FROM_DEVICE:e2)- DeviceProfile:d;
+  PRINT DALL[DALL.device_key, DALL.label, DALL.n_cards, DALL.n_customers] AS devices_used;
+  D = SELECT d FROM DALL:d WHERE d.n_cards <= max_device_cards;
+  PRINT D[D.device_key, D.label, D.n_cards] AS identifying_devices;
+  PRINT DALL.size() AS devices_total, D.size() AS devices_specific_enough;
+  T2 = SELECT t2 FROM D:d -(DEVICE_USED_BY:e3)- Transaction:t2
+       WHERE abs(datetime_diff(t2.ts, center)) <= days * 86400;
+  C2 = SELECT c2 FROM T2:t2 -(MADE_BY:e4)- Card:c2
+       WHERE c2 != c_in
+       ACCUM c2.@shared += 1, c2.@max_risk += t2.risk_score, c2.@via_device += t2.device_key
+       ORDER BY c2.@shared DESC LIMIT 25;
+  PRINT C2[C2.card_id, C2.customer_id, C2.@shared, C2.@max_risk, C2.@via_device]
+        AS connected_cards;
+}
+
+// -------------------------------------------- 12. disputed but recurring (R7)
+
+CREATE OR REPLACE QUERY recurring_charge_probe(VERTEX<Card> c_in, DOUBLE amt, DOUBLE tol,
+                                               STRING product) FOR GRAPH GRAPH_GOA SYNTAX v1 {
+  SumAccum<INT> @@matches;
+  SetAccum<STRING> @@months;
+  SetAccum<STRING> @@regions;
+  ListAccum<STRING> @@ids;
+  S = {c_in};
+  T = SELECT t FROM S:c -(MADE:e)- Transaction:t
+      WHERE t.amt >= amt - tol AND t.amt <= amt + tol
+        AND (product == "" OR t.product == product)
+      ACCUM
+        @@matches += 1,
+        @@months += to_string(year(t.ts)) + "-" + to_string(month(t.ts)),
+        @@regions += t.addr1,
+        @@ids += t.txn_id;
+  PRINT @@matches AS matching_charges,
+        @@months.size() AS distinct_months,
+        @@months AS months,
+        @@regions AS regions,
+        @@ids AS txn_ids;
+}
+
+// ------------------------------------------------------------- 13. velocity
+
+CREATE OR REPLACE QUERY velocity_probe(VERTEX<Card> c_in, DATETIME center, INT hours)
+  FOR GRAPH GRAPH_GOA SYNTAX v1 {
+  SumAccum<INT> @@n;
+  SumAccum<INT> @@n_online;
+  SumAccum<DOUBLE> @@total;
+  MaxAccum<DOUBLE> @@max_risk;
+  SetAccum<STRING> @@regions;
+  SetAccum<STRING> @@devices;
+  S = {c_in};
+  T = SELECT t FROM S:c -(MADE:e)- Transaction:t
+      WHERE abs(datetime_diff(t.ts, center)) <= hours * 3600
+      ACCUM
+        @@n += 1, @@total += t.amt, @@max_risk += t.risk_score, @@regions += t.addr1,
+        IF t.channel == "online" THEN @@n_online += 1 END,
+        IF t.device_key != "" THEN @@devices += t.device_key END;
+  PRINT @@n AS txns_in_window, @@n_online AS online_in_window, @@total AS total_amount,
+        @@max_risk AS max_risk_in_window, @@regions.size() AS distinct_regions,
+        @@devices.size() AS distinct_devices, @@regions AS regions;
+}
+
+// --- 14. this customer's history, including how often their denials were right
+
+CREATE OR REPLACE QUERY customer_case_history(STRING customer_id) FOR GRAPH GRAPH_GOA SYNTAX v1 {
+  SumAccum<INT> @@n_confirmed;
+  SumAccum<INT> @@n_cleared;
+  SumAccum<INT> @@n_reported_confirmed;
+  SumAccum<DOUBLE> @@total_exposure;
+  SetAccum<STRING> @@patterns;
+  CC = {ClosedCase.*};
+  R = SELECT cc FROM CC:cc WHERE cc.customer_id == customer_id
+      ACCUM
+        IF cc.outcome == "confirmed_fraud" THEN
+          @@n_confirmed += 1, @@total_exposure += cc.exposure_usd, @@patterns += cc.pattern,
+          // A denial track record: cases the cardholder themselves reported and
+          // which were then confirmed as fraud.
+          IF cc.analyst_notes LIKE "%reported unrecognized%" THEN @@n_reported_confirmed += 1 END
+        ELSE
+          @@n_cleared += 1
+        END
+      ORDER BY cc.opened_at ASC;
+  PRINT R[R.case_id, R.outcome, R.pattern, R.opened_at, R.closed_at, R.exposure_usd,
+          R.n_txns, R.actions_taken, R.report_filed, R.analyst_notes] AS cases;
+  PRINT @@n_confirmed AS confirmed_fraud_cases,
+        @@n_cleared AS cleared_cases,
+        @@n_reported_confirmed AS customer_reports_confirmed_fraud,
+        @@total_exposure AS lifetime_exposure,
+        @@patterns AS patterns_seen;
+}
+
+// ------------------------- 15. structural retrieval over the bank's closed cases
+
+CREATE OR REPLACE QUERY similar_prior_cases(STRING pattern_in, DOUBLE amt_lo, DOUBLE amt_hi,
+                                            STRING outcome_in, INT k)
+  FOR GRAPH GRAPH_GOA SYNTAX v1 {
+  CC = {ClosedCase.*};
+  R = SELECT cc FROM CC:cc
+      WHERE (pattern_in == "" OR cc.pattern == pattern_in)
+        AND (outcome_in == "" OR cc.outcome == outcome_in)
+        AND cc.exposure_usd >= amt_lo AND cc.exposure_usd <= amt_hi
+      ORDER BY cc.exposure_usd ASC
+      LIMIT k;
+  PRINT R[R.case_id, R.customer_id, R.card_id, R.outcome, R.pattern, R.exposure_usd,
+          R.n_txns, R.actions_taken, R.report_filed, R.analyst_notes] AS cases;
+}
+
+// ------------ 16. case memory: everything already known about this card/customer
+// Returns both the bank's closed cases and cases Sentinel itself has written, so
+// a later investigation retrieves an earlier one.
+
+CREATE OR REPLACE QUERY case_memory_for_card(VERTEX<Card> c_in) FOR GRAPH GRAPH_GOA SYNTAX v1 {
+  S = {c_in};
+  CC = SELECT cc FROM S:c -(CARD_IN_CC:e)- ClosedCase:cc;
+  PRINT CC[CC.case_id, CC.outcome, CC.pattern, CC.opened_at, CC.exposure_usd,
+           CC.actions_taken, CC.analyst_notes] AS bank_closed_cases;
+  FC = SELECT f FROM S:c -(CARD_IN_CASE:e2)- FraudCase:f;
+  PRINT FC[FC.case_id, FC.source_alert, FC.verdict, FC.fraud_probability, FC.status,
+           FC.pattern, FC.exposure_usd, FC.final_actions, FC.summary] AS sentinel_cases;
+  CONN = SELECT f FROM S:c -(CASE_CONNECTS:e3)- FraudCase:f;
+  PRINT CONN[CONN.case_id, CONN.verdict, CONN.summary] AS cases_connecting_this_card;
+}
