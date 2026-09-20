@@ -12,6 +12,7 @@ Built for the TigerGraph Agentic Fraud Investigation challenge, Hacker House Goa
 
 | Path | What |
 |---|---|
+| [Guide.md](Guide.md) | **The organiser's brief** — the spec this build answers to. Described [below](#guidemd--the-organisers-brief) |
 | [docs/SESSION_SUMMARY.md](docs/SESSION_SUMMARY.md) | Everything built so far, and what is left |
 | [docs/PRD.md](docs/PRD.md) | The product: problem, principles, architecture, graph model, intelligence layer, UI, scoring map |
 | [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) | Eleven build steps, each with an exit test |
@@ -55,6 +56,56 @@ in an answer file is checked to exist in the graph before the file is written.
 **2. The public IEEE-CIS / Kaggle files are never opened.** IDs, times and amounts in
 this dataset were transformed specifically so outcomes cannot be looked up there.
 Using them is explicit disqualification.
+
+## Guide.md — the organiser's brief
+
+[Guide.md](Guide.md) is the specification this entire build answers to. It is the
+document the organisers supplied, and it is the authority whenever anything in
+this repo disagrees with it. Read it before reading the code.
+
+It sets out how the application must behave, the resources available, the
+vocabulary, the data, and the sequence of steps the agent has to perform.
+
+| Section in Guide.md | What it gives you |
+|---|---|
+| **The task** | What the agent must produce for each of the 20 cases: a case record, a SAR when policy demands one, and a next-best-action recorded both **before and after** evidence is requested |
+| **Your first two hours** | The recommended order of work — load the graph, connect MCP, then **investigate one case by hand before writing any agent code** |
+| **Glossary** | Binding definitions: risk score, closed case, trigger, pattern, channel, exposure, case vs SAR, approval route, MCP, GraphRAG |
+| **Files in this folder** | The four dataset files and what each contains |
+| **The original columns** | Vesta's column groups. The `C`, `D`, `M`, `V` and numeric `id` families are real model features with **no published names**, to be cited honestly as such |
+| **The columns we added** | `customer_id`, `ts`, `channel`, `risk_score` — with the warning that the score is an input, never an answer |
+| **The five known fraud patterns** | Card testing, card-not-present, CNP from a new device, out-of-region use, account takeover. Explicitly **not** an exhaustive list; spotting an undocumented one is scored |
+| **Regulatory references** | FinCEN, FATF, FFIEC and OFAC sources, including the SAR narrative standard the `sar.narrative` field is judged against |
+| **Things to know** | The traps, stated plainly: half the cases are legitimate, an agent that blocks everything scores badly, devices and regions connect people |
+| **Rules** | Including the disqualifying one: never use the public IEEE-CIS / Kaggle files to recover outcomes |
+| **Suggested graph schema** | A starting point the organisers expect you to change; schema design is part of the engineering |
+| **Fraud Policy** | Rules R1–R10, the 14 action identifiers, and the `auto` / `L1` / `L2` routing table. **Action names and routes in answer files must match these exactly** |
+| **Answer Format** | The JSON contract for all 20 files, field by field, with a worked example. Missing fields score zero for that part |
+| **The 20 cases** | The exam: case id, trigger, flagged transaction, card, customer and score |
+
+### The sequence the agent must perform
+
+As the brief defines it:
+
+**trigger → investigate → gather evidence → assess uncertainty → gather more
+evidence if needed → take one or more next actions → explain the decision →
+update case memory**
+
+### Where this repo implements it
+
+| Brief requires | Implemented in |
+|---|---|
+| Load the graph, GSQL, graph algorithms | [graph/schema.gsql](graph/schema.gsql), [scripts/load_to_tigergraph.py](scripts/load_to_tigergraph.py) |
+| Expose the graph to the agent via MCP | [graph/queries/sentinel_queries.gsql](graph/queries/sentinel_queries.gsql), [sentinel/tools.py](sentinel/tools.py), `.mcp.json` |
+| Assess risk, honestly calibrated | [sentinel/ledger.py](sentinel/ledger.py), [eval/fit_elt.py](eval/fit_elt.py) |
+| Fraud Policy R1–R10, actions, approval routes | [sentinel/policy.py](sentinel/policy.py), tested in [tests/test_policy.py](tests/test_policy.py) |
+| Case memory written to the graph | [sentinel/memory.py](sentinel/memory.py) |
+| Answer-file contract, every ID real | [eval/validate.py](eval/validate.py) |
+| Investigate one case by hand first | [docs/HAND_INVESTIGATION.md](docs/HAND_INVESTIGATION.md), [cases/HHG-003.json](cases/HHG-003.json) |
+
+Design and plan: [docs/PRD.md](docs/PRD.md) and
+[docs/BUILD_PLAN.md](docs/BUILD_PLAN.md). Current state:
+[docs/SESSION_SUMMARY.md](docs/SESSION_SUMMARY.md).
 
 ## The dataset
 
