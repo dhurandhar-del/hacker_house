@@ -19,4 +19,13 @@ __pycache__/
 .pytest_cache/
 *.duckdb
 node_modules/
-ui/.next/
+frontend/.next/
+frontend/.env*.local
+frontend/out/
+
+# Backend runtime state and derived artefacts. cases/ IS tracked — it is the
+# deliverable. runs/ holds the per-run trace, which is reconstructible.
+backend/var/
+runs/
+.venv/
+
