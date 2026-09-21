@@ -143,14 +143,27 @@ emitting its events — a stream that connects and then delivers nothing.
 Concurrency inside the one process is what `MAX_CONCURRENT_INVESTIGATIONS` is
 for.
 
-### Amazon Linux 2023 instead of Ubuntu
+### Amazon Linux 2023
 
-The bootstrap script targets Ubuntu. On AL2023 the differences are: there is
-no `python3.12` in the default repositories (AL2023 ships 3.9 and 3.11 — the
-backend needs ≥3.11, so `python3.11` works and the pins resolve), `nginx` and
-`certbot` come from `dnf`, the nginx layout is `/etc/nginx/conf.d/*.conf`
-rather than `sites-available`, and SELinux denies nginx's proxy_pass to
-loopback until `setsebool -P httpd_can_network_connect 1`.
+Use [`bootstrap-al2023.sh`](bootstrap-al2023.sh) instead. Measured on
+`Amazon Linux 2023.12`, the differences from Ubuntu turned out to be smaller
+than expected:
+
+- `python3.12` **is** in the `amazonlinux` repo (3.12.14), so the pins resolve
+  to exactly what they were tested against
+- `certbot` and `python3-certbot-nginx` are packaged too — no EPEL, no
+  pip-installed certbot to maintain on the side
+- nginx is configured from `/etc/nginx/conf.d/*.conf`; there is no
+  `sites-available`/`sites-enabled` pair
+- SELinux ships **Permissive**, so nginx proxying to loopback needs no
+  `setsebool`
+- do **not** `dnf install curl`: AL2023 ships `curl-minimal`, which already
+  provides `/usr/bin/curl`, and asking for the full package aborts the
+  transaction with a wall of conflicts
+- the small instance types have no swap and under a gigabyte of RAM. The
+  script adds 2 GiB of swap and, below 2 GiB of RAM, writes a drop-in
+  narrowing the unit's `MemoryMax` to something the machine can actually
+  reach before the kernel's OOM killer does
 
 ---
 
