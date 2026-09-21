@@ -18,7 +18,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from sentinel import config as cfg  # noqa: E402
+from etl import config as cfg  # noqa: E402
 from scripts.load_to_tigergraph import read_gsql  # noqa: E402
 
 QUERY_FILE = "queries/sentinel_queries.gsql"

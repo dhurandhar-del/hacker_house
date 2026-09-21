@@ -15,7 +15,12 @@ import httpx
 from sentinel.config.settings import Settings
 from sentinel.domain.errors import GraphColdStart, GraphUnavailable, QueryFailed
 from sentinel.graph.normalize import ResponseNormalizer, is_cold_start
-from sentinel.graph.repository import GraphRepository
+from sentinel.graph.repository import (
+    EdgeUpsert,
+    GraphRepository,
+    UpsertResult,
+    VertexUpsert,
+)
 from sentinel.graph.token import TokenManager
 
 
@@ -129,6 +134,45 @@ class TigerGraphRestRepository(GraphRepository):
         }
         payload = await self._request("POST", f"/graph/{self._graph}", json_body=body)
         return self._accepted(payload, "accepted_edges")
+
+    async def upsert_batch(
+        self,
+        vertices: Sequence[VertexUpsert] = (),
+        edges: Sequence[EdgeUpsert] = (),
+    ) -> UpsertResult:
+        """Every vertex and every edge in one POST.
+
+        REST++ takes the whole nested payload at once, and a case write-back is
+        one vertex and up to thirty edges. Looping would be thirty round trips
+        to a workspace three hundred milliseconds away.
+        """
+        if not vertices and not edges:
+            return UpsertResult(vertices=0, edges=0)
+
+        v_body: dict[str, dict[str, Any]] = {}
+        for vertex in vertices:
+            self._checked(vertex.vtype, "vertex type")
+            v_body.setdefault(vertex.vtype, {})[vertex.vid] = self._wrap_attrs(vertex.attrs)
+
+        e_body: dict[str, Any] = {}
+        for edge in edges:
+            self._checked(edge.etype, "edge type")
+            self._checked(edge.src_type, "vertex type")
+            self._checked(edge.dst_type, "vertex type")
+            by_src = e_body.setdefault(edge.src_type, {}).setdefault(edge.src, {})
+            by_type = by_src.setdefault(edge.etype, {}).setdefault(edge.dst_type, {})
+            by_type[edge.dst] = self._wrap_attrs(edge.attrs)
+
+        body: dict[str, Any] = {}
+        if v_body:
+            body["vertices"] = v_body
+        if e_body:
+            body["edges"] = e_body
+        payload = await self._request("POST", f"/graph/{self._graph}", json_body=body)
+        return UpsertResult(
+            vertices=self._accepted(payload, "accepted_vertices"),
+            edges=self._accepted(payload, "accepted_edges"),
+        )
 
     async def get_vertex(self, vtype: str, vid: str) -> dict[str, Any] | None:
         self._checked(vtype, "vertex type")

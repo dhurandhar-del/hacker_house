@@ -30,6 +30,7 @@ EVENT_TYPES: tuple[str, ...] = (
     "budget.updated",
     "verdict.reached",
     "case.written",
+    "case.write_failed",
     "validation.completed",
     "run.completed",
     "run.failed",

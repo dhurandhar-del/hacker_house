@@ -16,10 +16,10 @@ from sentinel.agents.budget import BudgetGuard, RunBudget
 from sentinel.agents.emitter import EventEmitter, NullEmitter
 from sentinel.agents.episode import EpisodeScope
 from sentinel.agents.state_builder import ScopedFacts
-from sentinel.domain.alert import Alert
+from sentinel.domain.alert import Alert, TriggerContext
 from sentinel.domain.enums import CustomerResponse, Pattern, Verdict
 from sentinel.evidence.extractor import FeatureExtractor, PostingRequest
-from sentinel.evidence.ledger import EvidenceLedger
+from sentinel.evidence.ledger import EvidenceLedger, LedgerSnapshot
 from sentinel.simulation.simulator import SimulatedResponse
 from sentinel.tools.dto import CardWindow, DeviceNovelty, RegionNovelty, TransactionRow
 from sentinel.tools.registry import ToolRegistry
@@ -102,6 +102,13 @@ class InvestigationContext:
     # ── filled by `recall` ───────────────────────────────────────────────────
     similar_prior_cases: list[str] = field(default_factory=list)
     retrieved: list[dict[str, Any]] = field(default_factory=list)
+    #: The `PolicyDoc` chunks retrieval actually surfaced, keyed by doc_id.
+    #: This is grounding: the assessment and narration agents read the text.
+    policy_docs: dict[str, dict[str, Any]] = field(default_factory=dict)
+    #: Every policy chunk in the corpus, keyed by doc_id — title and ref only.
+    #: A citation must be accurate whether or not retrieval happened to rank
+    #: that rule, and `decide` names the rules long after `recall` has run.
+    policy_catalogue: dict[str, dict[str, str]] = field(default_factory=dict)
 
     # ── filled by `assess` ───────────────────────────────────────────────────
     pattern: Pattern = Pattern.NONE
@@ -111,6 +118,12 @@ class InvestigationContext:
 
     # ── filled by `stop_test` and `request_evidence` ─────────────────────────
     stop_before_request: bool = False
+    #: The ledger as it stood before any requested evidence was posted. This is
+    #: what `next_best_actions.initial` is evaluated against; without it the
+    #: pre-request recommendation is scored at the post-request probability.
+    pre_request: LedgerSnapshot | None = None
+    #: The reply to a round the agent *asked for*. Distinct from
+    #: :attr:`trigger_response`, which the alert brought with it.
     response: SimulatedResponse | None = None
     customer_response: CustomerResponse | None = None
     evidence_request_step: int | None = None
@@ -125,6 +138,16 @@ class InvestigationContext:
 
     # ── filled by `narrate` ──────────────────────────────────────────────────
     narration: Narration = field(default_factory=Narration)
+
+    # ── filled by `write` ────────────────────────────────────────────────────
+    #: Set by the write-back, never claimed by the assembler. `written_to_graph`
+    #: without `graph_case_id` is rejected by the answer model, so the two are
+    #: written together or not at all.
+    written_to_graph: bool = False
+    graph_case_id: str = ""
+    #: `PolicyDoc` ids the recall step retrieved and the engine actually cited.
+    #: They become `APPLIED_RULE` edges and `source: "document"` evidence.
+    applied_rules: list[str] = field(default_factory=list)
 
     @property
     def budget(self) -> RunBudget:
@@ -145,6 +168,27 @@ class InvestigationContext:
         if self.txn is None or self.txn.ts is None:
             return self.alert.opened_at.strftime("%Y-%m-%d %H:%M:%S")
         return self.txn.ts.strftime("%Y-%m-%d %H:%M:%S")
+
+    @property
+    def trigger_response(self) -> CustomerResponse | None:
+        """The cardholder's position as the alert already states it.
+
+        Eight of the twenty alerts read "Customer C08623 message: 'I never made
+        this $49.00 purchase.'" — a denial, in hand at step zero, which R2 acts
+        on. Until this was wired, ``TriggerContext.customer_already_denied``
+        was computed and read by nothing, and R2 could not fire on the eight
+        cases where the cardholder had told us outright.
+        """
+        return (
+            CustomerResponse.DENIED
+            if TriggerContext.from_alert(self.alert).customer_already_denied
+            else None
+        )
+
+    @property
+    def effective_response(self) -> CustomerResponse | None:
+        """What the cardholder has said, by whatever route."""
+        return self.customer_response or self.trigger_response
 
     @property
     def risk_score(self) -> float:

@@ -243,3 +243,58 @@ async def test_an_api_failure_becomes_the_systems_own_error_type():
     client.settings.openai_max_retries = 0
     with pytest.raises(LlmUnavailable):
         await client.complete(purpose="claims", system="s", user="u", schema=Assessment)
+
+
+# ── per-run metering ─────────────────────────────────────────────────────────
+
+
+def test_a_reading_is_a_frozen_copy_not_a_live_view():
+    meter = CostMeter()
+    meter.charge("gpt-5.4-mini", 100, 50)
+    before = meter.reading()
+    meter.charge("gpt-5.4-mini", 200, 100)
+    assert before.tokens == 150, "the reading moved with the meter"
+    assert meter.tokens == 450
+
+
+def test_a_runs_budget_reports_its_own_spend_not_the_clients():
+    """One LlmClient serves a twenty-case batch; each run reports only its own.
+
+    The regression this pins: `answer.tokens` read the client-lifetime meter,
+    so the first benchmark case reported 7,541 tokens and the twentieth
+    reported 122,847 — the batch total, not the case's. It also meant the
+    per-run token ceiling tripped two thirds of the way through a batch.
+    """
+    from sentinel.agents.budget import RunBudget
+
+    settings_obj = settings()
+    meter = CostMeter()
+
+    meter.charge("gpt-5.4-mini", 4_000, 1_000)  # an earlier case in the batch
+    first_done = meter.tokens
+
+    budget = RunBudget(settings=settings_obj, meter=meter)
+    assert budget.tokens == 0, "a fresh run starts at zero, whatever came before"
+
+    meter.charge("gpt-5.4-mini", 900, 100)  # this run's only call
+    assert budget.tokens == 1_000
+    assert budget.llm_calls == 1
+    assert budget.snapshot().tokens == 1_000
+    assert meter.tokens == first_done + 1_000, "the client total still accumulates"
+
+
+def test_the_token_ceiling_is_per_run_not_per_client():
+    from sentinel.agents.budget import BudgetGuard, RunBudget
+    from sentinel.domain.errors import BudgetExceeded
+
+    settings_obj = settings()
+    meter = CostMeter()
+    # Two prior cases have already spent more than a single run may.
+    meter.charge("gpt-5.4-mini", settings_obj.max_tokens_per_run, 0)
+
+    guard = BudgetGuard(RunBudget(settings=settings_obj, meter=meter))
+    guard.check_spend()  # must not raise: this run has spent nothing
+
+    meter.charge("gpt-5.4-mini", settings_obj.max_tokens_per_run, 0)
+    with pytest.raises(BudgetExceeded):
+        guard.check_spend()

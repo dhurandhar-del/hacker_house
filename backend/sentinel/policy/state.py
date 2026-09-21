@@ -52,6 +52,14 @@ class CaseState:
 
     trigger_type: TriggerType = TriggerType.RISK_SCORE
     customer_response: CustomerResponse | None = None
+    #: Whether the response above came back from a round the agent *asked for*,
+    #: as opposed to arriving with the trigger. Both are the cardholder's word
+    #: and R2/R3/R4 treat them identically — a denial is a denial. The
+    #: difference matters in exactly two places: R7 still wants to ask whether a
+    #: disputed charge is the cardholder's own subscription (a different
+    #: question from "did you make this"), and Policy §6 stops on "a
+    #: verification response", which a customer's opening report is not.
+    response_requested: bool = False
 
     #: How many independent evidence groups moved the probability. R1 turns on
     #: whether the case rests on a *single* signal, so leaving this at its
@@ -96,8 +104,19 @@ class CaseState:
 
     @property
     def has_customer_response(self) -> bool:
-        """True once an evidence round has come back, however it came back."""
+        """True once the cardholder's position is known, whatever told us.
+
+        On the eight ``customer_report`` alerts that position is "I never made
+        this purchase", known at step zero. R1 exists to stop a block resting
+        on one weak signal; a cardholder's denial is not that, so R1 stands
+        down here whichever way the denial arrived.
+        """
         return self.customer_response is not None
+
+    @property
+    def has_requested_response(self) -> bool:
+        """True only for a reply to a round the agent actually asked for."""
+        return self.customer_response is not None and self.response_requested
 
     @property
     def rests_on_one_signal(self) -> bool:

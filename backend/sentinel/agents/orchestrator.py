@@ -36,6 +36,7 @@ from sentinel.agents.steps import (
     ScopeStep,
     StopTestStep,
     SweepStep,
+    WriteStep,
 )
 from sentinel.config.settings import Settings
 from sentinel.domain.alert import Alert
@@ -46,8 +47,10 @@ from sentinel.evidence.ledger import EvidenceLedger
 from sentinel.evidence.table import EvidenceLikelihoodTable
 from sentinel.graph.repository import GraphRepository
 from sentinel.llm.client import LlmClient
+from sentinel.memory.store import CaseMemoryStore
 from sentinel.policy.engine import PolicyEngine, build_policy_engine
 from sentinel.policy.stopping import StoppingPolicy
+from sentinel.rag.retriever import GraphRagRetriever
 from sentinel.tools.log import QueryLog
 from sentinel.tools.registry import ToolRegistry
 from sentinel.validation.validator import AnswerValidator, ValidationReport
@@ -98,6 +101,13 @@ class SentinelOrchestrator(InvestigationOrchestrator):
     engine: PolicyEngine = field(default_factory=build_policy_engine)
     assembler: AnswerAssembler = field(default_factory=AnswerAssembler)
     validator: AnswerValidator = field(default_factory=AnswerValidator)
+    #: Supplied by the caller. Absent, the run is a dry one: every step but the
+    #: write-back happens, so a unit test and a `--no-write` run take the same
+    #: path through the other nine.
+    memory: CaseMemoryStore | None = None
+    #: Absent, `recall` degrades to the structural lookup and no `document`
+    #: evidence is produced. Present, retrieval is hybrid and grounded.
+    retriever: GraphRagRetriever | None = None
     steps: Sequence[InvestigationStep] = ()
 
     def __post_init__(self) -> None:
@@ -105,12 +115,16 @@ class SentinelOrchestrator(InvestigationOrchestrator):
             self.steps = self.default_steps()
 
     def default_steps(self) -> tuple[InvestigationStep, ...]:
-        """The published pipeline. `write` is the caller's, so a dry run writes nothing."""
+        """The published pipeline. `write` appears only when a store was given,
+        so a dry run takes the identical path through the other nine steps."""
+        write: tuple[InvestigationStep, ...] = (
+            (WriteStep(self.memory, self.assembler),) if self.memory is not None else ()
+        )
         return (
             ScopeStep(),
             PlanStep(PlannerAgent(llm=self.llm)),
             SweepStep(),
-            RecallStep(),
+            RecallStep(self.retriever),
             AssessStep(
                 AssessmentAgent(llm=self.llm),
                 DevilsAdvocateAgent(llm=self.llm),
@@ -119,6 +133,7 @@ class SentinelOrchestrator(InvestigationOrchestrator):
             RequestEvidenceStep(),
             DecideStep(self.engine),
             NarrateStep(NarrationAgent(llm=self.llm)),
+            *write,
         )
 
     async def run(

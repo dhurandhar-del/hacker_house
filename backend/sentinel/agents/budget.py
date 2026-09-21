@@ -17,7 +17,7 @@ from time import monotonic
 
 from sentinel.config.settings import Settings
 from sentinel.domain.errors import BudgetExceeded
-from sentinel.llm.client import CostMeter
+from sentinel.llm.client import CostMeter, MeterReading
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,10 +64,31 @@ class RunBudget:
     tool_calls: int = 0
     evidence_rounds: int = 0
     started_at: float = field(default_factory=monotonic)
+    #: What the meter read when this run began. One ``LlmClient`` serves the
+    #: whole batch, so everything below is a difference against this.
+    baseline: MeterReading = field(default_factory=MeterReading)
+
+    def __post_init__(self) -> None:
+        if self.baseline == MeterReading():
+            self.baseline = self.meter.reading()
 
     @property
     def elapsed_s(self) -> float:
         return monotonic() - self.started_at
+
+    @property
+    def tokens(self) -> int:
+        """Tokens *this run* spent. What ``answer.tokens`` reports."""
+        return self.meter.tokens - self.baseline.tokens
+
+    @property
+    def usd(self) -> float:
+        """Dollars this run spent."""
+        return self.meter.usd - self.baseline.usd
+
+    @property
+    def llm_calls(self) -> int:
+        return self.meter.calls - self.baseline.calls
 
     def snapshot(self) -> BudgetSnapshot:
         return BudgetSnapshot(
@@ -75,9 +96,9 @@ class RunBudget:
             max_tool_calls=self.settings.max_tool_calls_per_run,
             evidence_rounds=self.evidence_rounds,
             max_evidence_rounds=self.settings.max_evidence_rounds,
-            tokens=self.meter.tokens,
+            tokens=self.tokens,
             max_tokens=self.settings.max_tokens_per_run,
-            usd=self.meter.usd,
+            usd=self.usd,
             max_usd=self.settings.max_usd_per_run,
             elapsed_s=self.elapsed_s,
             max_elapsed_s=float(self.settings.max_run_seconds),
@@ -128,13 +149,13 @@ class BudgetGuard:
 
     def check_spend(self) -> None:
         """Tokens, dollars and wall clock, checked together before an LLM call."""
-        if self.budget.meter.tokens >= self.settings.max_tokens_per_run:
+        if self.budget.tokens >= self.settings.max_tokens_per_run:
             raise BudgetExceeded(
                 f"token ceiling reached ({self.settings.max_tokens_per_run})",
                 ceiling="tokens",
                 snapshot=self.budget.snapshot().as_dict(),
             )
-        if self.budget.meter.usd >= self.settings.max_usd_per_run:
+        if self.budget.usd >= self.settings.max_usd_per_run:
             raise BudgetExceeded(
                 f"spend ceiling reached (${self.settings.max_usd_per_run:.2f})",
                 ceiling="usd",

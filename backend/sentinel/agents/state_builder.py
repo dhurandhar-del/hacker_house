@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from sentinel.domain.enums import CustomerResponse, Pattern, TriggerType, Verdict
-from sentinel.evidence.ledger import EvidenceLedger
+from sentinel.evidence.ledger import EvidenceLedger, LedgerSnapshot
 from sentinel.policy.config import DEFAULT_POLICY_CONFIG, PolicyConfig
 from sentinel.tools.dto import (
     CardBaseline,
@@ -86,9 +86,14 @@ class CaseStateBuilder:
         exposure_usd: float,
         connected_card_ids: list[str] | None = None,
         customer_response: CustomerResponse | str | None = None,
+        response_requested: bool = False,
+        snapshot: LedgerSnapshot | None = None,
     ) -> CaseState:
         from sentinel.policy.state import CaseState  # local: avoids an import cycle
 
+        # `None` means "read the ledger now". A snapshot is passed when the
+        # state being built is the *initial* one and the ledger has since moved.
+        reading = snapshot or self.ledger.snapshot()
         shared_origin, shared_kind = self._shared_origin(facts.ring)
         connected = connected_card_ids if connected_card_ids is not None else []
         # CaseState coerces these at runtime; narrowing here keeps the permissive
@@ -101,13 +106,14 @@ class CaseStateBuilder:
         )
 
         return CaseState(
-            fraud_probability=round(self.ledger.p, 4),
+            fraud_probability=round(reading.p, 4),
             exposure_usd=exposure_usd,
-            verdict=self.verdict(),
+            verdict=self.verdict(reading.p),
             trigger_type=trigger,
             customer_response=response,
+            response_requested=response_requested and response is not None,
             # The field v1 never wired. Without it R1 strips every block.
-            independent_signals=self.ledger.independent_support(),
+            independent_signals=reading.independent_support,
             pattern=facts.pattern,
             card_testing_sequence=self._card_testing_sequence(facts.testing),
             card_testing_cleared_over_100=self._cleared_over_100(facts.testing),
@@ -125,14 +131,14 @@ class CaseStateBuilder:
 
     # ── verdict ──────────────────────────────────────────────────────────────
 
-    def verdict(self) -> Verdict:
+    def verdict(self, probability: float | None = None) -> Verdict:
         """Read off the probability against the policy's own stopping bounds.
 
         ``uncertain`` is the honest middle and earns full credit on the cases the
         organisers designed to be ambiguous, so it is a real outcome here rather
         than a failure to decide.
         """
-        p = self.ledger.p
+        p = self.ledger.p if probability is None else probability
         if p >= self.config.stop_high:
             return Verdict.FRAUD
         if p <= self.config.stop_low:

@@ -90,6 +90,15 @@ class Posting:
         )
 
 
+@dataclass(frozen=True, slots=True)
+class LedgerSnapshot:
+    """The two numbers the policy engine reads, frozen at one moment."""
+
+    p: float
+    independent_support: int
+    postings: int
+
+
 class EvidenceLedger:
     """Accumulates log-odds from posted findings and remembers why.
 
@@ -276,6 +285,24 @@ class EvidenceLedger:
         satisfy it.
         """
         return sum(1 for total in self._group_total.values() if abs(total) > SUPPORT_EPSILON)
+
+    def snapshot(self) -> LedgerSnapshot:
+        """What the policy reads off this ledger, frozen at this instant.
+
+        ``next_best_actions.initial`` means "what I recommended before I asked
+        for anything", and the ledger is a running total — so by the time
+        ``decide`` runs, the requested evidence has already moved it. Reading
+        ``p`` there gave the *post*-request probability to the *pre*-request
+        recommendation: HHG-006's requested evidence moved the number from 0.81
+        to 0.59 and the initial recommendation was computed at 0.59, which is
+        the one number it cannot be. The snapshot taken before the request is
+        what `initial` is evaluated against.
+        """
+        return LedgerSnapshot(
+            p=self.p,
+            independent_support=self.independent_support(),
+            postings=len(self._postings),
+        )
 
     def top_drivers(self, n: int = 3) -> list[Posting]:
         """The postings that moved the number most, for ``what_changed``."""

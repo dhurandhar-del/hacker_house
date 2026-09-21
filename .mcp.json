@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "tigergraph": {
-      "command": "tigergraph-mcp",
+      "command": "/Users/subhash/hacker_house/.venv/bin/tigergraph-mcp",
       "args": [],
       "env": {}
     }

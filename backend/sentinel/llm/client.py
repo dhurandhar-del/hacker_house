@@ -49,12 +49,16 @@ PRICING: dict[str, tuple[float, float]] = {
 }
 
 
-@dataclass
-class CostMeter:
-    """Running token and dollar totals for one investigation.
+@dataclass(frozen=True, slots=True)
+class MeterReading:
+    """The meter's totals at one instant.
 
-    Collaborators: ``LlmClient`` charges it; ``BudgetGuard`` reads it to stop a
-    run at its ceiling; the assembler reads ``tokens`` for the answer file.
+    Exists so a per-run budget can be a *delta* against a client-lifetime
+    meter. One ``LlmClient`` serves a twenty-case batch, so a run that read the
+    meter directly would report every token the batch had spent so far — which
+    is what `answer.tokens` did, climbing from 7,541 on the first case to
+    122,847 on the last, and tripping the per-run ceiling two thirds of the way
+    through.
     """
 
     prompt_tokens: int = 0
@@ -64,8 +68,36 @@ class CostMeter:
 
     @property
     def tokens(self) -> int:
-        """What ``answer.tokens`` reports: every token the case consumed."""
         return self.prompt_tokens + self.completion_tokens
+
+
+@dataclass
+class CostMeter:
+    """Running token and dollar totals, for the life of one ``LlmClient``.
+
+    Collaborators: ``LlmClient`` charges it; ``RunBudget`` takes a baseline
+    reading and reports the difference, which is what the answer file and the
+    budget ceilings both use.
+    """
+
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    usd: float = 0.0
+    calls: int = 0
+
+    @property
+    def tokens(self) -> int:
+        """Every token this client has spent, across every run it served."""
+        return self.prompt_tokens + self.completion_tokens
+
+    def reading(self) -> MeterReading:
+        """The totals right now, frozen."""
+        return MeterReading(
+            prompt_tokens=self.prompt_tokens,
+            completion_tokens=self.completion_tokens,
+            usd=self.usd,
+            calls=self.calls,
+        )
 
     def charge(self, model: str, prompt: int, completion: int) -> float:
         self.prompt_tokens += prompt

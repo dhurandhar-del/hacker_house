@@ -23,7 +23,9 @@ from sentinel.domain.answer import (
     NextBestActions,
     SarReport,
 )
-from sentinel.domain.enums import Action, CaseStatus, Verdict
+from sentinel.domain.enums import Action, CaseStatus, EvidenceSource, Verdict
+from sentinel.policy.engine import cited_rules
+from sentinel.tools.refs import EvidenceRef
 
 
 @dataclass
@@ -64,8 +66,10 @@ class AnswerAssembler:
             evidence=self._evidence(ctx),
             similar_prior_cases=list(ctx.similar_prior_cases),
             summary=ctx.narration.summary,
-            written_to_graph=False,  # set by the write-back, not claimed here
-            graph_case_id="",
+            # Claimed only when `WriteStep` actually wrote the vertex. The
+            # assembler never sets these to True on its own.
+            written_to_graph=ctx.written_to_graph,
+            graph_case_id=ctx.graph_case_id,
         )
 
         return AnswerFile(
@@ -76,7 +80,7 @@ class AnswerAssembler:
             sar=self._sar(ctx, exposure, affected),
             stop_reason=ctx.narration.stop_reason,
             tool_calls=ctx.tools.log.count,
-            tokens=ctx.budget.meter.tokens,
+            tokens=ctx.budget.tokens,
             latency_s=round(ctx.budget.elapsed_s, 2),
         )
 
@@ -100,8 +104,16 @@ class AnswerAssembler:
 
     @staticmethod
     def _evidence(ctx: InvestigationContext) -> list[Evidence]:
-        """Every ledger posting, in the order it was made."""
-        return [
+        """Every ledger posting, then the policy text the decision rests on.
+
+        The two halves answer different questions and the answer format wants
+        both. A posting says what the graph showed and how much it moved the
+        probability; a document item says which written rule turned that into
+        this action. Guide.md §7 asks for the rule number; this is where the
+        rule stops being a string in a reason and becomes a citation a reader
+        can follow back to `PolicyDoc`.
+        """
+        items = [
             Evidence(
                 claim=posting.claim,
                 source=posting.source,
@@ -110,6 +122,41 @@ class AnswerAssembler:
             )
             for posting in ctx.ledger.postings
         ]
+        return items + AnswerAssembler._documents(ctx)
+
+    @staticmethod
+    def _documents(ctx: InvestigationContext) -> list[Evidence]:
+        """One item per policy rule the engine actually decided under.
+
+        The claim is computed — the rule's own title from the retrieved chunk,
+        plus the engine's own reason. No model text reaches it.
+        """
+        # The engine's own reason, stripped of the rule prefix it opens with —
+        # "R7: send an informational message" reads as "Fraud Policy R7 ...
+        # applied here because R7: ..." otherwise.
+        reasons: dict[str, str] = {}
+        for rec in (*ctx.initial, *ctx.final):
+            for rule in cited_rules([rec]):
+                reasons.setdefault(rule, rec.reason.split(":", 1)[-1].strip())
+
+        out: list[Evidence] = []
+        for doc_id in ctx.applied_rules:
+            entry = ctx.policy_catalogue.get(doc_id, {})
+            rule = doc_id.removeprefix("POL-")
+            # The section chunks already title themselves "Fraud Policy §3a";
+            # the rule chunks title themselves "R7. ...". One prefix, not two.
+            title = str(entry.get("title") or f"§{rule}").removeprefix("Fraud Policy ")
+            because = reasons.get(rule) or (ctx.sar_reason if doc_id == "POL-3A" else "")
+            claim = f"Fraud Policy {title}" + (f" — applied here because {because}" if because else "")
+            out.append(
+                Evidence(
+                    claim=claim,
+                    source=EvidenceSource.DOCUMENT,
+                    ref=str(entry.get("ref") or EvidenceRef.document(doc_id, rule)),
+                    entity_ids=[doc_id],
+                )
+            )
+        return out
 
     @staticmethod
     def _requests(ctx: InvestigationContext) -> list[EvidenceRequest]:

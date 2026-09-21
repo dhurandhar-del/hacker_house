@@ -13,19 +13,27 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, ClassVar
+from typing import ClassVar
 
 from sentinel.agents.agents.assessment import AssessmentAgent, DevilsAdvocateAgent
 from sentinel.agents.agents.narration import NarrationAgent
 from sentinel.agents.agents.planner import PlannerAgent
+from sentinel.agents.assembler import AnswerAssembler
 from sentinel.agents.context import InvestigationContext
 from sentinel.agents.episode import EpisodeScoper
 from sentinel.agents.state_builder import CaseStateBuilder, ScopedFacts
 from sentinel.domain.enums import Pattern, RequestType
-from sentinel.domain.errors import BudgetExceeded, VertexNotFound
-from sentinel.policy.engine import PolicyEngine, PolicyOutcome
+from sentinel.domain.errors import BudgetExceeded, SentinelError, VertexNotFound
+from sentinel.memory.store import CaseMemoryStore, CaseWriteRequest, is_closed_case
+from sentinel.policy.engine import PolicyEngine, PolicyOutcome, cited_rules
 from sentinel.policy.state import CaseState
 from sentinel.policy.stopping import StoppingPolicy
+from sentinel.rag.retriever import (
+    KIND_CLOSED_CASE,
+    KIND_POLICY,
+    GraphRagRetriever,
+    RetrievalQuery,
+)
 from sentinel.simulation.simulator import EvidenceSimulator
 from sentinel.tools.dto import (
     AmountBandProbe,
@@ -242,19 +250,74 @@ class SweepStep(InvestigationStep):
 class RecallStep(InvestigationStep):
     """Retrieve prior cases and the policy text the assessment reasons over.
 
-    Structural retrieval today; the hybrid retriever replaces the body of this
-    step once the ``PolicyDoc`` corpus is ingested, without the step's contract
-    changing.
+    Two retrievals, not one. Closed cases answer "has the bank seen this shape
+    before, and what did the analyst do?". Policy chunks answer "which written
+    rule governs it?" — and they are what make ``source: "document"`` evidence
+    reachable, which is GraphRAG's only visible footprint in the graded file.
+
+    Without a retriever the step degrades to the structural lookup it had
+    before, rather than failing: a run against the fake, or against a graph
+    whose corpus has not been ingested, still produces a valid answer.
     """
 
     name = "recall"
-    title = "Recall prior cases"
+    title = "Recall prior cases and policy"
+
+    def __init__(self, retriever: GraphRagRetriever | None = None) -> None:
+        self._retriever = retriever
 
     async def run(self, ctx: InvestigationContext) -> None:
+        if self._retriever is not None:
+            await self._hybrid(ctx)
         if not ctx.similar_prior_cases:
-            result = await _call(ctx, "case_memory_for_card", card_id=ctx.alert.card_id)
-            if result.ok and isinstance(result.data, CardCaseMemory):
-                ctx.similar_prior_cases = [c.case_id for c in result.data.bank_closed_cases][:6]
+            await self._structural(ctx)
+
+    async def _hybrid(self, ctx: InvestigationContext) -> None:
+        assert self._retriever is not None
+        query = self._describe(ctx)
+        as_of = ctx.txn.ts if ctx.txn is not None else ctx.alert.opened_at
+        try:
+            cases = await self._retriever.retrieve(
+                RetrievalQuery(
+                    text=query,
+                    kind=KIND_CLOSED_CASE,
+                    pattern=ctx.pattern,
+                    exposure=abs(ctx.txn.amt) if ctx.txn is not None else 0.0,
+                    card_id=ctx.alert.card_id,
+                    customer_id=ctx.alert.customer_id,
+                    as_of=as_of,
+                    k=6,
+                )
+            )
+            docs = await self._retriever.retrieve(
+                RetrievalQuery(text=query, kind=KIND_POLICY, as_of=None, k=4)
+            )
+        except SentinelError as exc:
+            # Retrieval is grounding, not evidence. Losing it degrades the
+            # answer; failing the run over it would be worse.
+            logger.warning("retrieval failed for %s: %s", ctx.alert.alert_id, exc.message)
+            return
+
+        ctx.similar_prior_cases = [hit.id for hit in cases]
+        ctx.retrieved = [hit.as_dict() for hit in (*cases, *docs)]
+        ctx.policy_docs = {hit.id: hit.as_dict() for hit in docs}
+        ctx.policy_catalogue = self._retriever.policy_catalogue()
+        for kind, hits in (("closed_case", cases), ("policy_doc", docs)):
+            ctx.emitter.emit(
+                "retrieval.completed",
+                {
+                    "kind": kind,
+                    "strategy": "hybrid (vector + structural, RRF)",
+                    "query": query,
+                    "hits": [hit.as_dict() for hit in hits],
+                },
+                step=ctx.counter.current,
+            )
+
+    async def _structural(self, ctx: InvestigationContext) -> None:
+        result = await _call(ctx, "case_memory_for_card", card_id=ctx.alert.card_id)
+        if result.ok and isinstance(result.data, CardCaseMemory):
+            ctx.similar_prior_cases = [c.case_id for c in result.data.bank_closed_cases][:6]
         ctx.emitter.emit(
             "retrieval.completed",
             {
@@ -265,6 +328,39 @@ class RecallStep(InvestigationStep):
             },
             step=ctx.counter.current,
         )
+
+    @staticmethod
+    def _describe(ctx: InvestigationContext) -> str:
+        """The case in the words a closed-case note would use.
+
+        Built from the same ``CaseState`` the policy engine will decide on, not
+        from a second reading of the raw DTOs and not from model prose. The
+        query text decides what is retrieved: a threshold applied differently
+        here than in the engine would retrieve cases about a different case,
+        and a hallucinated phrase would retrieve cases about nothing.
+        """
+        txn = ctx.txn
+        state = _state(ctx)
+        parts: list[str] = [ctx.alert.trigger_text.strip()]
+        if txn is not None:
+            channel = "card-present" if txn.channel == "in_person" else "online"
+            parts.append(
+                f"{channel} transaction of ${abs(txn.amt):,.2f} on card {ctx.alert.card_id}"
+                f" in billing region {txn.addr1}"
+            )
+        if ctx.region_novelty is not None and ctx.region_novelty.prior_txns_in_region == 0:
+            parts.append("billing region is new for this card")
+        if ctx.device_novelty is not None and ctx.device_novelty.device_is_new_to_card:
+            parts.append("device profile is new for this account")
+        if state.recurring_match:
+            parts.append("the amount matches a recurring monthly charge on this card")
+        if state.card_testing_sequence:
+            parts.append("several small authorizations preceded a larger purchase")
+        if state.shared_origin:
+            parts.append(f"several cards share the same {state.shared_origin_kind}")
+        if state.pattern is not Pattern.NONE:
+            parts.append(f"suspected pattern {state.pattern.value}")
+        return ". ".join(part for part in parts if part)
 
 
 # ── 5. assess ────────────────────────────────────────────────────────────────
@@ -332,6 +428,9 @@ class RequestEvidenceStep(InvestigationStep):
         except BudgetExceeded:
             return
         ctx.guard.record_evidence_round()
+        # Frozen before anything this step posts, because `initial` means
+        # "before I asked" and the ledger is about to move.
+        ctx.pre_request = ctx.ledger.snapshot()
 
         request_type = (
             RequestType.STEP_UP_AUTH
@@ -414,10 +513,14 @@ class DecideStep(InvestigationStep):
         )
         ctx.episode = scoper.scope(txn, ctx.pattern, ctx.verdict, txn.addr1)
 
-        # `initial` is the recommendation BEFORE the requested evidence came
-        # back, so it is evaluated with no customer response, whatever happened
-        # later. Evaluating it after would make the pair incomparable.
-        before = _state(ctx, customer_response=None)
+        # `initial` is the recommendation BEFORE any requested evidence came
+        # back — but *including* whatever the trigger itself already said, so
+        # the eight cases where the cardholder opened with "I never made this
+        # purchase" reach R2 in their initial recommendation, not only their
+        # final one. Evaluating it after the request would make the pair
+        # incomparable; evaluating it as if the trigger had said nothing would
+        # make it wrong.
+        before = _state(ctx, _INITIAL)
         initial = self._engine.evaluate(before)
         ctx.initial = initial.recommendations
         ctx.emitter.emit(
@@ -431,9 +534,11 @@ class DecideStep(InvestigationStep):
             ctx.final = list(ctx.initial)
             ctx.sar_file = initial.sar.file
             ctx.sar_reason = initial.sar.reason
+            ctx.gates_fired = [gate.as_dict() for gate in initial.gates if gate.fired]
+            _record_rules(ctx)
             return
 
-        after = _state(ctx, customer_response=ctx.customer_response)
+        after = _state(ctx, _CURRENT)
         final = self._engine.evaluate(after)
         ctx.final = final.recommendations
         ctx.sar_file = final.sar.file
@@ -443,6 +548,7 @@ class DecideStep(InvestigationStep):
             "policy.evaluated", _policy_payload(ctx, after, final, "final"),
             step=ctx.counter.current,
         )
+        _record_rules(ctx)
 
 
 # ── 9. narrate ───────────────────────────────────────────────────────────────
@@ -463,6 +569,69 @@ class NarrateStep(InvestigationStep):
         ctx.narration.what_changed = output.what_changed or "nothing"
         if not ctx.narration.stop_reason:
             ctx.narration.stop_reason = output.stop_reason
+
+
+# ── 10. write ────────────────────────────────────────────────────────────────
+
+
+class WriteStep(InvestigationStep):
+    """Put the case in the graph, so the next case can find it.
+
+    The step writes a *vertex*, never a file — that is the run harness's job, and
+    keeping it so is what lets the API run an investigation without touching the
+    submission directory. What it does own is the claim: after this step,
+    ``ctx.written_to_graph`` and ``ctx.graph_case_id`` are true and set, and the
+    assembler copies them into the answer. Nothing else in the system may set
+    them, so an answer claiming a write-back is an answer that got one.
+
+    It assembles a provisional answer to hand the store, because a `FraudCase`
+    vertex carries the verdict, the exposure and the summary and those come off
+    the assembled object rather than being re-derived here. The two fields this
+    step sets are the only difference between that provisional answer and the
+    one the orchestrator assembles a moment later.
+    """
+
+    name = "write"
+    title = "Write the case to the graph"
+
+    def __init__(self, store: CaseMemoryStore, assembler: AnswerAssembler | None = None) -> None:
+        self._store = store
+        self._assembler = assembler or AnswerAssembler()
+
+    async def run(self, ctx: InvestigationContext) -> None:
+        provisional = self._assembler.assemble(ctx)
+        cited = list(ctx.similar_prior_cases)
+        request = CaseWriteRequest(
+            case_id=ctx.alert.alert_id,
+            answer=provisional,
+            alert_id=ctx.alert.alert_id,
+            customer_id=ctx.alert.customer_id,
+            card_id=ctx.alert.card_id,
+            device_keys=list(ctx.connected_device_profiles),
+            # `similar_prior_cases` holds both kinds once the retriever runs:
+            # the bank's `CC-NNNN` rows and Sentinel cases written earlier in
+            # this same batch. They take different edge types.
+            cites_closed_cases=[c for c in cited if is_closed_case(c)],
+            cites_cases=[c for c in cited if not is_closed_case(c)],
+            applied_rules=list(ctx.applied_rules),
+            created_at=ctx.alert.opened_at,
+        )
+        try:
+            result = await self._store.write(request)
+        except SentinelError as exc:
+            # A failed write-back must not lose the investigation. The answer is
+            # still valid; it simply cannot claim a vertex that is not there.
+            logger.warning("write-back failed for %s: %s", ctx.alert.alert_id, exc.message)
+            ctx.emitter.emit(
+                "case.write_failed",
+                {"case_id": ctx.alert.alert_id, "code": exc.code, "message": exc.message},
+                step=ctx.counter.current,
+            )
+            return
+
+        ctx.written_to_graph = result.ok
+        ctx.graph_case_id = result.graph_case_id if result.ok else ""
+        ctx.emitter.emit("case.written", result.as_dict(), step=ctx.counter.current)
 
 
 # ── helpers ──────────────────────────────────────────────────────────────────
@@ -489,19 +658,37 @@ async def _call(ctx: InvestigationContext, name: str, **args: object) -> ToolRes
     return result
 
 
-#: Distinguishes "use whatever the context has" from "explicitly no response",
-#: which is the difference between the initial and the final evaluation.
-_UNSET: Any = object()
+#: Which phase a state is being built for. Not a boolean, because
+#: ``CustomerResponse.DENIED`` is the same enum member whether the cardholder
+#: volunteered it or answered a question — so the two phases cannot be told
+#: apart by comparing the responses, only by saying which one is being built.
+_INITIAL = "initial"
+_CURRENT = "current"
 
 
-def _state(ctx: InvestigationContext, customer_response: Any = _UNSET) -> CaseState:
-    response = ctx.customer_response if customer_response is _UNSET else customer_response
+def _state(ctx: InvestigationContext, phase: str = _CURRENT) -> CaseState:
+    """The policy's input at one moment.
+
+    ``_CURRENT`` is everything known now. ``_INITIAL`` is what was known
+    *before the agent asked for anything* — which on a ``customer_report``
+    alert still includes the cardholder's own denial, because that arrived
+    with the trigger rather than in answer to a question.
+    """
+    snapshot = None
+    if phase == _INITIAL:
+        response, requested = ctx.trigger_response, False
+        snapshot = ctx.pre_request
+    else:
+        response = ctx.effective_response
+        requested = ctx.customer_response is not None
     return CaseStateBuilder(ctx.ledger).build(
         facts=ctx.facts,
         trigger_type=ctx.alert.trigger_type,
         exposure_usd=ctx.episode.exposure_usd if ctx.episode else 0.0,
         connected_card_ids=ctx.connected_card_ids,
         customer_response=response,
+        response_requested=requested,
+        snapshot=snapshot,
     )
 
 
@@ -510,7 +697,11 @@ def _policy_payload(
 ) -> dict[str, object]:
     return {
         "phase": phase,
-        "fraud_probability": round(ctx.ledger.p, 4),
+        # The state's probability, not the ledger's. On the `initial` phase they
+        # differ: the state was built from the snapshot taken before the
+        # requested evidence landed, and the timeline must show the number the
+        # recommendation was actually made at.
+        "fraud_probability": state.fraud_probability,
         "exposure_usd": state.exposure_usd,
         "verdict": state.verdict.value,
         "independent_support": state.independent_signals,
@@ -519,6 +710,20 @@ def _policy_payload(
         "sar": {"file": outcome.sar.file, "reason": outcome.sar.reason},
         "stop": {"should_stop": ctx.stop_before_request, "reason": ctx.narration.stop_reason},
     }
+
+
+def _record_rules(ctx: InvestigationContext) -> None:
+    """The `PolicyDoc` ids for the rules that actually produced this answer.
+
+    Both phases, because `initial` is graded too, plus §3a whenever a filing
+    decision was reached — that section is the one that distinguishes a case
+    from a report, and it is the passage a reviewer of that decision needs.
+    """
+    rules = cited_rules([*ctx.initial, *ctx.final])
+    docs = [f"POL-{rule}" for rule in rules]
+    if ctx.sar_reason:
+        docs.append("POL-3A")
+    ctx.applied_rules = list(dict.fromkeys(docs))
 
 
 def _with(facts: ScopedFacts, **changes: object) -> ScopedFacts:

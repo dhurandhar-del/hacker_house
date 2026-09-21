@@ -23,7 +23,7 @@ from sentinel.agents.emitter import EVENT_TYPES, CollectingEmitter
 from sentinel.agents.orchestrator import SentinelOrchestrator
 from sentinel.config.settings import Settings
 from sentinel.domain.alert import Alert
-from sentinel.domain.enums import Action, Pattern, Route, TriggerType
+from sentinel.domain.enums import Action, EvidenceSource, Pattern, Route, TriggerType
 from sentinel.evidence.table import DEFAULT_ELT_PATH, EvidenceLikelihoodTable
 from sentinel.graph.fake import FakeGraphRepository
 from sentinel.llm.client import LlmClient
@@ -298,12 +298,21 @@ async def test_the_graph_facts_pull_the_probability_below_its_prior():
 
 
 async def test_no_device_evidence_is_claimed_without_an_identity_record():
+    """HHG-003 has no identity record, so no *graph* claim may mention a device.
+
+    Scoped to graph-sourced evidence deliberately. A `document` item quotes the
+    Fraud Policy, and §3a's own wording names a shared device profile as one of
+    the things that would require a report — quoting a rule is not asserting a
+    fact about this card.
+    """
     orch, _, _ = orchestrator()
     result = await orch.run(ALERT)
-    features = {e.ref for e in result.answer.case.evidence}
-    claims = " ".join(e.claim for e in result.answer.case.evidence)
-    assert "device" not in claims.lower() or "identity record" in claims.lower()
-    assert features, "evidence must cite its queries"
+    evidence = result.answer.case.evidence
+    assert {e.ref for e in evidence}, "evidence must cite its queries"
+    graph_claims = " ".join(
+        e.claim for e in evidence if e.source is EvidenceSource.GRAPH
+    ).lower()
+    assert "device" not in graph_claims or "identity record" in graph_claims
 
 
 async def test_the_cardholder_is_not_blocked():

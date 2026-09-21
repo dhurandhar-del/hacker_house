@@ -288,9 +288,25 @@ def test_stop_requires_two_independent_signals():
 
 
 def test_stop_on_a_settling_response():
-    state = CaseState(fraud_probability=0.5, customer_response="denied")
+    state = CaseState(
+        fraud_probability=0.5, customer_response="denied", response_requested=True
+    )
     decision = STOPPING.should_stop(state, independent_support=1)
     assert decision.stop is True and "settled" in decision.reason
+
+
+def test_a_customer_report_is_not_a_verification_response():
+    """Policy §6 stops on "a verification response". The trigger is not one.
+
+    Eight of the twenty alerts arrive as "I never made this purchase". That is
+    the cardholder's position and R2 acts on it — but it answers nothing the
+    agent asked, so stopping on it would mean those eight never ask the one
+    question that could still move them.
+    """
+    state = CaseState(
+        fraud_probability=0.5, customer_response="denied", response_requested=False
+    )
+    assert STOPPING.should_stop(state, independent_support=1).stop is False
 
 
 def test_no_stop_in_the_middle_band():

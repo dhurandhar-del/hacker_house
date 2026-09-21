@@ -12,9 +12,10 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Annotated
 
 from pydantic import Field, SecretStr, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 #: Repository root — backend/sentinel/config/settings.py -> up three.
 ROOT = Path(__file__).resolve().parents[3]
@@ -83,7 +84,10 @@ class Settings(BaseSettings):
     # ── API ──────────────────────────────────────────────────────────────────
     api_host: str = "127.0.0.1"
     api_port: int = 8000
-    cors_origins: list[str] = Field(
+    # NoDecode: without it pydantic-settings JSON-decodes a list field read from
+    # .env *before* any validator runs, so the comma-separated form below — the
+    # only form a .env file can hold — raises SettingsError at import time.
+    cors_origins: Annotated[list[str], NoDecode] = Field(
         default_factory=lambda: ["http://localhost:3000", "http://127.0.0.1:3000"]
     )
     default_role: str = "analyst"

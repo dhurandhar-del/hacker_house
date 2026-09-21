@@ -27,6 +27,11 @@ from sentinel.validation.validator import ValidationReport, as_mapping
 _CLOSED_CASE_PREFIX = "CC-"
 _CARD_SUFFIX = re.compile(r"-K\d+$")
 
+#: The `doc_id` prefixes `CorpusBuilder` writes. A `source: "document"` evidence
+#: item names one of these, and an id naming a chunk that was never ingested is
+#: exactly the kind of unverifiable citation this checker exists to catch.
+_POLICY_DOC_PREFIXES = ("POL-", "PAT-", "GLO-", "KNOW-", "REG-")
+
 
 @runtime_checkable
 class VertexReader(Protocol):
@@ -86,7 +91,12 @@ class GraphIdentityChecker:
 
     def _collect(self, case: Mapping[str, Any]) -> dict[str, set[str]]:
         """Every id in the answer, bucketed by the vertex type it must exist as."""
-        wanted: dict[str, set[str]] = {"Transaction": set(), "Card": set(), "ClosedCase": set()}
+        wanted: dict[str, set[str]] = {
+            "Transaction": set(),
+            "Card": set(),
+            "ClosedCase": set(),
+            "PolicyDoc": set(),
+        }
         wanted["Transaction"].update(self._strings(case.get("affected_txn_ids")))
         first = case.get("first_suspicious_txn_id")
         if isinstance(first, str) and first:
@@ -113,10 +123,14 @@ class GraphIdentityChecker:
         run of digits a transaction. Customers (``C08623``), billing regions
         (``330.0``) and device-profile labels are left alone: the first two are
         not ids this validator is asked to confirm, and a device profile is a
-        composite label rather than a vertex key.
+        composite label rather than a vertex key. ``POL-R7`` and its siblings
+        are `PolicyDoc` chunks, checked because a cited rule that is not in the
+        corpus is a citation nobody can follow.
         """
         if entity_id.startswith(_CLOSED_CASE_PREFIX):
             return "ClosedCase"
+        if entity_id.startswith(_POLICY_DOC_PREFIXES):
+            return "PolicyDoc"
         if _CARD_SUFFIX.search(entity_id):
             return "Card"
         if entity_id.isdigit():

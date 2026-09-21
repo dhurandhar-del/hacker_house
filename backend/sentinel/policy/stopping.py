@@ -17,6 +17,11 @@ from sentinel.policy.state import CaseState
 
 #: The two responses that settle the question outright. ``no_reply`` does not:
 #: it routes into R4 and the investigation continues.
+#:
+#: Only a *requested* response settles anything. Policy §6 says "a verification
+#: response settles the question", and a customer's opening report is the
+#: trigger, not a response — stopping on it would mean the eight
+#: ``customer_report`` cases never ask the one question that could move them.
 _SETTLING_RESPONSES = (CustomerResponse.DENIED, CustomerResponse.CONFIRMED)
 
 
@@ -45,7 +50,7 @@ class StoppingPolicy:
 
     def should_stop(self, state: CaseState, independent_support: int) -> StopDecision:
         probability = state.fraud_probability
-        if state.customer_response in _SETTLING_RESPONSES:
+        if state.response_requested and state.customer_response in _SETTLING_RESPONSES:
             response = state.customer_response.value if state.customer_response else ""
             return StopDecision(
                 True,

@@ -16,7 +16,8 @@ the policy says "Order them by what happens first."
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+import re
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -27,6 +28,28 @@ from sentinel.policy.gates.base import GateOutcome, RouteChange
 from sentinel.policy.routing import RoutingTable
 from sentinel.policy.sar import SarDecision, SarPolicy
 from sentinel.policy.state import CaseState
+
+#: Every reason string this module produces opens with the rule that caused it
+#: — "R7: cardholder disputes a charge that matches...". That convention is what
+#: makes :func:`cited_rules` a read of what the engine did rather than a guess
+#: at what it might have done, so it is enforced by a unit test.
+_RULE_IN_REASON = re.compile(r"^(R\d{1,2}):")
+
+
+def cited_rules(recommendations: Iterable[Recommendation]) -> list[str]:
+    """The rule ids these recommendations were actually made under, in order.
+
+    Used to build the `APPLIED_RULE` edges and the `source: "document"` evidence
+    items. Reading them back off the reasons keeps one source of truth: a rule
+    that fires without saying so in its reason is a rule an analyst cannot
+    check, which is a defect either way.
+    """
+    out: list[str] = []
+    for rec in recommendations:
+        match = _RULE_IN_REASON.match(rec.reason)
+        if match and match.group(1) not in out:
+            out.append(match.group(1))
+    return out
 
 
 @dataclass(frozen=True, slots=True)
@@ -216,10 +239,15 @@ class PolicyEngine:
             "R7: cardholder disputes a charge that matches their own recurring pattern",
             state,
         )
-        if not state.has_customer_response:
+        # Guide.md R7 lists VERIFY_WITH_CUSTOMER even though the cardholder has
+        # already disputed the charge, and that is not an oversight: R7's
+        # question is "is this your own recurring subscription?", which the
+        # dispute does not answer. It is suppressed only once a requested round
+        # has actually come back.
+        if not state.has_requested_response:
             recs.add(
                 Action.VERIFY_WITH_CUSTOMER,
-                "R7: confirm with the cardholder before taking any action",
+                "R7: confirm with the cardholder that this is their own recurring charge",
                 state,
             )
         recs.add(

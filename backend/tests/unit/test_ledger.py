@@ -247,3 +247,49 @@ def test_explain_names_the_prior_the_trigger_and_every_capped_posting(table):
     assert "risk_score" in text
     assert "[capped]" in text
     assert text.count("[capped]") == 1
+
+
+# ── snapshots ────────────────────────────────────────────────────────────────
+
+
+def test_a_snapshot_does_not_move_when_the_ledger_does(table):
+    """`next_best_actions.initial` is evaluated against a frozen reading.
+
+    The regression this pins: the initial recommendation read `ledger.p` at
+    decide time, by which point the requested evidence had already been posted.
+    HHG-006's requested step-up moved the number from 0.8111 to 0.5883 and the
+    *pre*-request recommendation was computed at 0.5883 — so `initial` and
+    `final` could never disagree about the probability, and on 18 of 20 cases
+    they did not disagree at all.
+    """
+    ledger = EvidenceLedger(table, TriggerType.RISK_SCORE)
+    ledger.post_judgement(group="a", log_lr=1.5, claim="incriminating", ref="alert:X")
+    before = ledger.snapshot()
+
+    ledger.post_judgement(group="response", log_lr=-1.5, claim="step-up passed", ref="alert:X")
+
+    assert before.p > ledger.p, "the second posting must have moved the number"
+    assert before.postings == 1 and len(ledger.postings) == 2
+    assert before.independent_support == 1
+    assert ledger.independent_support() == 2
+
+
+def test_a_state_built_from_a_snapshot_reports_the_snapshots_probability(table):
+    from sentinel.agents.state_builder import CaseStateBuilder, ScopedFacts
+
+    ledger = EvidenceLedger(table, TriggerType.RISK_SCORE)
+    ledger.post_judgement(group="a", log_lr=2.0, claim="incriminating", ref="alert:X")
+    before = ledger.snapshot()
+    ledger.post_judgement(group="response", log_lr=-3.0, claim="exonerating", ref="alert:X")
+
+    builder = CaseStateBuilder(ledger)
+    initial = builder.build(
+        facts=ScopedFacts(), trigger_type=TriggerType.RISK_SCORE, exposure_usd=0.0,
+        snapshot=before,
+    )
+    final = builder.build(
+        facts=ScopedFacts(), trigger_type=TriggerType.RISK_SCORE, exposure_usd=0.0
+    )
+    assert initial.fraud_probability == round(before.p, 4)
+    assert final.fraud_probability == round(ledger.p, 4)
+    assert initial.fraud_probability > final.fraud_probability
