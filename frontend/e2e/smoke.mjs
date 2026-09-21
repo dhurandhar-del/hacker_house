@@ -107,10 +107,29 @@ check(
   "ring renders the honest result",
   (await page.getByText(/No ring on this pack|Undocumented component/).count()) > 0,
 );
-check("ring sweep animation", (await page.locator("circle.animate-spin-sweep").count()) >= 1);
-// The canvas must draw the real neighbourhood, not an empty frame.
+// The sweep boundary travels its dashes rather than rotating: a rotating
+// ellipse tumbles instead of sweeping.
+check("ring sweep boundary", (await page.locator("ellipse.animate-trace").count()) >= 1);
+// The canvas must draw the real neighbourhood, not an empty frame — and the
+// caption must agree with it. An earlier version capped the sample in a way
+// that split the graph in two while still claiming one component.
 const ringNodes = await page.locator("svg g.animate-s-pop circle").count();
-check("ring draws real nodes", ringNodes >= 20, `${ringNodes} nodes`);
+check("ring draws real nodes", ringNodes >= 80, `${ringNodes} nodes`);
+const ringCaption = (await page.locator(".z-view svg text").allTextContents()).join(" ");
+check(
+  "ring caption states one component",
+  /one component/.test(ringCaption),
+  ringCaption.slice(0, 80),
+);
+// The busiest shared cards are the finding on this screen; they carry names.
+check(
+  "ring names its hubs",
+  /\d+ profiles/.test(ringCaption) && /C\d{5}-K\d/.test(ringCaption),
+);
+check(
+  "ring names the benchmark seeds",
+  (await page.getByText(/benchmark seed/).count()) >= 3,
+);
 
 // The monitor's bars: a percentage height inside a flex column resolves to
 // zero, which shipped once already.

@@ -52,7 +52,7 @@
 
 /* ── motion ──────────────────────────────────────────────────────────────────
  *
- * Eight keyframes, ported from the console design study. Each one says
+ * Seven keyframes, ported from the console design study. Each one says
  * something the layout cannot:
  *
  *   s-in     a row that has just arrived from the stream
@@ -60,11 +60,14 @@
  *   s-pulse  a connection that is open, or a state still resolving
  *   stripe   the agent is working — the only continuous motion on the page
  *   lock     the investigation's current focus, closing on a node
- *   trace    an edge being walked right now
- *   spin     a scope ring sweeping its neighbourhood
- *   prowl    an indeterminate sweep with no known end
+ *   trace    an edge being walked, or a boundary being swept
+ *   spin     a scope ring turning over its neighbourhood
  *
- * They are defined once, here, so a component can never invent a ninth.
+ * The study's eighth, `prowl`, is not here: nothing in this console has an
+ * indeterminate sweep with no known end, and a keyframe no component uses is
+ * a keyframe the next person will use wrongly.
+ *
+ * They are defined once, here, so a component can never invent an eighth.
  * Everything below is disabled wholesale under `prefers-reduced-motion`; the
  * information each one carries is also carried by text or colour, never by
  * the movement alone.
@@ -105,15 +108,6 @@
 @keyframes stripe {
   to {
     background-position: 56px 0;
-  }
-}
-
-@keyframes prowl {
-  0% {
-    transform: translateX(-35%);
-  }
-  100% {
-    transform: translateX(135%);
   }
 }
 
@@ -158,11 +152,6 @@
   }
   .animate-spin-slow {
     animation: spin 14s linear infinite;
-    transform-origin: center;
-    transform-box: fill-box;
-  }
-  .animate-spin-sweep {
-    animation: spin 22s linear infinite;
     transform-origin: center;
     transform-box: fill-box;
   }
@@ -226,7 +215,6 @@
   .animate-s-pulse,
   .animate-trace,
   .animate-spin-slow,
-  .animate-spin-sweep,
   .animate-lock,
   .bg-runway,
   .bg-working {

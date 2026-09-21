@@ -39,12 +39,12 @@ pytest tests/unit tests/integration -q      349 passed
 pytest tests/live -m live -q                16 passed   (against the live workspace)
 ruff check api sentinel tests               All checks passed!
 ruff format --check api sentinel tests      121 files already formatted
-mypy --strict                               Success: no issues found in 102 source files
+mypy --strict                               Success: no issues found in 101 source files
 python -m sentinel validate --no-graph      20/20 valid
 python -m api.contract emit --check         up to date
 cd frontend && npx tsc --noEmit             clean
 cd frontend && npm run build                Compiled successfully
-cd frontend && npm run smoke                23/23 checks passed  (headless Chromium)
+cd frontend && npm run smoke                26/26 checks passed  (headless Chromium)
 python scripts/check_contrast.py --check    every token clears its bar in both themes
 ```
 
@@ -235,13 +235,19 @@ the agent cleared anyway, and the ring that is not there.
 **The graph canvas** (F10, previously cut) draws `/api/graph/cases/{id}` as a
 breadth-first ring layout — deterministic, so the same case draws the same
 picture on two screens in a call. **The ring view** draws the real two-hop
-device neighbourhood out of `exploration/rings.json`, because at one hop
-there is genuinely nothing to draw and a console that renders a ring anyway
-is the failure the whole sweep exists to avoid.
+device neighbourhood out of `exploration/rings.json`, because at one hop no
+two seeds share a device at all — there is genuinely nothing to draw, and a
+console that renders a ring anyway is the failure the whole sweep exists to
+avoid. It draws the part that carries the connection: 48 profiles and the 60
+cards sitting on more than one of them, one connected component, with the
+207 single-profile leaves left out because they join nothing. Connectivity is
+measured on what is on screen rather than asserted, and the busiest shared
+cards are named — one card appears on twenty-one separate device fingerprints
+inside a month.
 
 Verified in a real browser: `npm run smoke` drives Chromium through the
 masthead, the queue, a replay advancing, the graph pane's nodes, all five
-tabs, both full-screen views and the drawer — 23 checks, failing on any
+tabs, both full-screen views and the drawer — 26 checks, failing on any
 console error. It runs with the OS forced to dark, because the console is a
 light instrument and following the preference was a defect it caught.
 
