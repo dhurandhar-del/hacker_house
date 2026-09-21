@@ -16,12 +16,10 @@ rather than failing.
 
 from __future__ import annotations
 
-import os
-
 import pytest
 import pytest_asyncio
 
-from sentinel.config.settings import Settings
+from sentinel.config.settings import Settings, get_settings
 from sentinel.graph.tigergraph import TigerGraphRestRepository
 from sentinel.tools import QueryLog, ToolRegistry
 
@@ -36,20 +34,28 @@ REGION = "330.0"
 
 
 def _settings() -> Settings:
-    """Build settings from the TigerGraph half of the environment only.
+    """Build settings from the TigerGraph half of the configuration only.
 
-    The OpenAI variables are required by ``Settings`` and are not needed here, so
-    they are filled with placeholders rather than making a graph test depend on a
-    model credential.
+    Read through ``Settings``, not ``os.environ``. The credentials live in
+    ``.env`` and pytest does not put that file into the environment, so a
+    direct ``os.environ`` read found nothing and every test here skipped —
+    and "16 skipped" reads, at a glance, exactly like "16 passed".
+
+    The OpenAI variables are required by ``Settings`` and are not needed here,
+    so they are filled with placeholders rather than making a graph test
+    depend on a model credential.
     """
-    for required in ("TG_HOST", "TG_SECRET"):
-        if not os.environ.get(required):
-            pytest.skip(f"{required} is not set; live tests need the workspace")
+    try:
+        configured = get_settings()
+    except Exception as exc:  # noqa: BLE001 - pydantic-settings raises several
+        pytest.skip(f"configuration is incomplete ({exc}); live tests need the workspace")
+    if not configured.tg_host or not configured.tg_secret.get_secret_value():
+        pytest.skip("TG_HOST and TG_SECRET are not configured; live tests need the workspace")
     return Settings(  # type: ignore[call-arg]
-        tg_host=os.environ["TG_HOST"],
-        tg_secret=os.environ["TG_SECRET"],
-        tg_graph=os.environ.get("TG_GRAPH", "GRAPH_GOA"),
-        tg_api_token=os.environ.get("TG_API_TOKEN") or None,
+        tg_host=configured.tg_host,
+        tg_secret=configured.tg_secret,
+        tg_graph=configured.tg_graph,
+        tg_api_token=configured.tg_api_token,
         openai_api_key="not-used-by-graph-tests",
         openai_model="not-used-by-graph-tests",
         openai_embedding_model="not-used-by-graph-tests",

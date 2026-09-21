@@ -36,6 +36,7 @@ of six.
 
 ```
 pytest tests/unit tests/integration -q      341 passed
+pytest tests/live -m live -q                16 passed   (against the live workspace)
 ruff check api sentinel tests               All checks passed!
 ruff format --check api sentinel tests      119 files already formatted
 mypy --strict                               Success: no issues found in 100 source files
@@ -62,7 +63,7 @@ over an in-memory database.
 | **G1** | New GSQL queries | 10 new queries installed and callable | ✅ 26 live, all with source |
 | **M3** | GraphRAG live | `PolicyDoc` > 0; 5,565 `ClosedCase.emb`; retrieval recall ≥ 4/6 | ✅ **5 of 6** |
 | **M4** | One case end to end | valid file, non-zero tokens, ≥1 `document` evidence item | ✅ |
-| **M5** | **20 answer files** ← the gate | all valid; block ≤ 0.50; ≥6 with initial ≠ final | ✅ **20/20, 11 changed** |
+| **M5** | **20 answer files** ← the gate | all valid; block ≤ 0.50; ≥6 with initial ≠ final | ✅ **20/20, 8 changed** |
 | **M6** | Console usable | live stream, reconnect replays | ✅ **verified over HTTP** |
 | **M7** | Permission boundary | 403 → approve → execute | ✅ **end to end, and tested** |
 | **M8** | Score raised | calibration review, ring discovery | ✅ both |
@@ -104,13 +105,14 @@ over an in-memory database.
 | `rag/` | `CorpusBuilder`, `EmbeddingService`, `VectorIndex`, `GraphRagRetriever` |
 | `memory/` | `CaseMemoryStore` — one vertex, eight edge types, one POST |
 | `agents/` | The ten-step orchestrator, four LLM agents, episode scoper, state builder, assembler |
-| `exploration/` | Two-hop ring discovery; output to `exploration/`, never to `cases/` |
+| `exploration/` | Ring discovery; output to `exploration/`, never to `cases/` |
 | `runner.py`, `cli.py` | The run harness and the composition root |
 
-### Nine defects found and fixed
+### Twenty-five defects found and fixed
 
-Four were in the v1 base, five were found by running the machine and auditing
-its output. Each has a regression test.
+Four were in the v1 base; the rest were found by running the machine,
+auditing its twenty answer files, and pointing a browser at the API. Each has
+a regression test.
 
 **In the base**
 
@@ -160,6 +162,24 @@ its output. Each has a regression test.
     orchestrator's except clauses.
 18. **A narrower group cap inverted a posting's sign**: +0.4 applied as −0.5.
 19. **`scripts/setup_mcp.py --refresh` deleted a live `OPENAI_API_KEY`.**
+20. **A named pattern could contradict a measured fact** — `out_of_region_use`
+    on a card with 42 prior transactions in that region.
+
+**Found by pointing a browser at it**
+
+21. **`Subscription` was unhashable**, so the SSE broker's set raised
+    `TypeError` from inside the response body — after the 200 had gone out,
+    which is why it read as an empty stream rather than an error.
+22. **The wire said `on_denied: "enqueue"` and the service checked
+    `"approve"`**, so every 403 came back without the approval it had created.
+23. **The run row said "completed" before its events were journalled**, and
+    `_finish` read the step number and budget back out of a half-drained
+    journal.
+24. **`sqlalchemy` was declared without `[asyncio]`**, so a fresh install
+    failed on the first await with "the greenlet library is required".
+25. **`pytest -m live` skipped all sixteen tests silently.** They read
+    `os.environ` for credentials that live in `.env`, and "16 skipped" reads,
+    at a glance, exactly like "16 passed".
 
 ### The model
 
