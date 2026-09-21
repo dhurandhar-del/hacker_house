@@ -222,7 +222,7 @@
       "CC-1004",
       "CC-4437"
     ],
-    "summary": "The evidence does not show a fraud pattern. This is an online card-not-present purchase, but it is in the cardholder's home country, the device is not new for the account, the identity checks did not fail, and the card has prior history with this device and similar amounts. The prior cleared cases also show this customer has had unusual-looking transactions that were confirmed as legitimate, including travel-related alerts and a purchase the cardholder confirmed.",
+    "summary": "The evidence does not show a fraud pattern. This is an online card-not-present purchase, but the amount is not a probe size, the billing country is the cardholder's home country, the device is not new for the account, and the card has used this device 3 time(s) before. Prior cleared cases for this card also show similar model-scored transactions that were explained by confirmed travel or confirmed purchase, which supports legitimacy here.",
     "written_to_graph": true,
     "graph_case_id": "CASE-HHG-017"
   },
@@ -260,6 +260,6 @@
   },
   "stop_reason": "3a: no report. Fraud is neither confirmed nor strongly suspected (probability 0.42); exposure $100.09 is at or below $1,000; the activity connects to no shared device profile, region cluster or other customer's fraud.",
   "tool_calls": 14,
-  "tokens": 7291,
-  "latency_s": 17.12
+  "tokens": 6995,
+  "latency_s": 16.14
 }

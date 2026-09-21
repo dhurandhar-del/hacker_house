@@ -88,7 +88,14 @@ class Settings(BaseSettings):
     # .env *before* any validator runs, so the comma-separated form below — the
     # only form a .env file can hold — raises SettingsError at import time.
     cors_origins: Annotated[list[str], NoDecode] = Field(
-        default_factory=lambda: ["http://localhost:3000", "http://127.0.0.1:3000"]
+        default_factory=lambda: [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            # Next falls back to 3001 when 3000 is taken, and a console that
+            # silently cannot reach the API is the worst way to discover it.
+            "http://localhost:3001",
+            "http://127.0.0.1:3001",
+        ]
     )
     default_role: str = "analyst"
     sse_keepalive_seconds: int = 15

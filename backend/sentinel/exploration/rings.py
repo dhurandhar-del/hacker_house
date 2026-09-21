@@ -7,17 +7,28 @@ happened on *other* cards" — and names the undocumented pattern as explicitly
 scored.
 
 The method is deliberately the boring one, because the interesting one is wrong
-here. Two hops out from each seed card through device profiles, **gated on
-profile specificity at every hop**, then connected components over the
-card-to-card co-occurrence graph, computed client-side. No community detection,
-no modularity: with the gate applied the components are small and disjoint, and
-a clustering algorithm would only add a parameter to defend.
+here. One hop out from each seed card through device profiles, **gated on
+profile specificity**, then connected components over the card-to-card
+co-occurrence graph, computed client-side. No community detection, no
+modularity: a clustering algorithm would only add a parameter to defend.
 
 The gate is the whole analysis. 116 of the 9,704 device profiles carry 24,653
 of the card links and the largest spans 842 cards; ungated, every card that has
 ever been used in a browser lands in one giant component and the output says
 nothing. Gated at twenty cards per profile, what survives is cards that share a
 fingerprint specific enough to mean something.
+
+**And at two hops the gate is not enough.** Two hops from the twenty seed
+cards, with every profile gated the same way, reaches a single connected
+component of well over a thousand cards — the exact figure is `two_hop_reach`
+in the report, because it moves with the window. That is not a ring, it is the
+observation that this device graph has a giant component: a card shares a
+specific profile with a handful of others, each of which shares a *different*
+specific profile with a handful more, and two hops joins most of the graph.
+
+So the ring test runs at one hop, which is what R6 is about — "several cards
+show fraud from the same device profile" — and the two-hop reach is reported
+as the measurement that rules the second hop out, rather than quietly dropped.
 
 Output goes to ``exploration/``, never to ``cases/``. None of this is part of
 the graded answer for any of the twenty; it is the question the twenty do not
@@ -53,6 +64,16 @@ MAX_CARDS_PER_HOP = 40
 #: A component of two cards is a coincidence. Three is a question.
 MIN_COMPONENT_CARDS = 3
 
+#: Above this a component is not a ring, it is a neighbourhood. A shared
+#: fingerprint that forty cards have is a fingerprint class the gate did not
+#: catch, and calling it a ring would be the phantom-ring failure with an
+#: extra step.
+MAX_RING_CARDS = 40
+
+#: How many cards to name before saying "and N more". A ring worth reading is
+#: small; a list of 1,339 ids is a way of not saying anything.
+NAMED_CARDS = 25
+
 
 @dataclass
 class Component:
@@ -76,13 +97,19 @@ class Component:
 
     @property
     def is_ring(self) -> bool:
-        """Cards from more than one customer, at least two already confirmed.
+        """Small, multi-customer, and already known to the bank as fraud.
 
-        Both halves matter. One customer with three cards on one laptop is a
-        household, not a ring. Two customers sharing a fingerprint with no
-        confirmed fraud between them is a coffee shop.
+        All three halves matter. One customer with three cards on one laptop
+        is a household. Two customers sharing a fingerprint with no confirmed
+        fraud between them is a coffee shop. And a component of four hundred
+        cards is a fingerprint class the gate did not catch — calling that a
+        ring is the phantom-ring failure with an extra step.
         """
-        return self.spans_customers >= 2 and len(self.confirmed_fraud_cards) >= 2
+        return (
+            MIN_COMPONENT_CARDS <= self.size <= MAX_RING_CARDS
+            and self.spans_customers >= 2
+            and len(self.confirmed_fraud_cards) >= 2
+        )
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -105,6 +132,10 @@ class RingReport:
     seeds: int
     components: list[Component]
     generic_profiles_skipped: int
+    #: Cards reachable in *two* hops from the seeds, as one connected set. The
+    #: number that rules two-hop co-occurrence out as evidence of a ring.
+    two_hop_reach: int = 0
+    two_hop_customers: int = 0
     window_days: int = WINDOW_DAYS
     max_device_cards: int = MAX_DEVICE_CARDS
 
@@ -115,18 +146,22 @@ class RingReport:
     def as_dict(self) -> dict[str, Any]:
         return {
             "method": {
-                "hops": 2,
+                "hops": 1,
                 "window_days": self.window_days,
                 "max_device_cards": self.max_device_cards,
                 "min_component_cards": MIN_COMPONENT_CARDS,
+                "max_ring_cards": MAX_RING_CARDS,
                 "note": (
                     "Device profiles above max_device_cards are browser configurations "
-                    "rather than devices and are excluded at every hop. Ungated, the "
-                    "largest single profile spans 842 cards and every component merges."
+                    "rather than devices and are excluded. The ring test runs at one hop: "
+                    "two hops reaches a single giant component, which is reported as "
+                    "two_hop_reach rather than as a ring."
                 ),
             },
             "seeds": self.seeds,
             "generic_profiles_skipped": self.generic_profiles_skipped,
+            "two_hop_reach": self.two_hop_reach,
+            "two_hop_customers": self.two_hop_customers,
             "components_found": len(self.components),
             "rings_found": len(self.rings),
             "components": [c.as_dict() for c in self.components],
@@ -136,24 +171,46 @@ class RingReport:
         lines = [
             "# Ring discovery",
             "",
-            f"Two hops from {self.seeds} seed cards, device profiles gated at "
-            f"{self.max_device_cards} cards, a {self.window_days}-day window either side.",
+            "## Method",
             "",
-            f"**{len(self.components)} components** of {MIN_COMPONENT_CARDS} or more cards; "
-            f"**{len(self.rings)}** of them meet the ring test (two or more customers, "
-            f"two or more cards already confirmed fraudulent).",
+            f"One hop from {self.seeds} seed cards through device profiles gated at "
+            f"{self.max_device_cards} cards, a {self.window_days}-day window either side, then "
+            "connected components client-side. A component is a ring only if it holds "
+            f"{MIN_COMPONENT_CARDS} to {MAX_RING_CARDS} cards across two or more customers with two "
+            "or more of them already confirmed fraudulent by the bank.",
             "",
-            f"{self.generic_profiles_skipped} device profiles were excluded as generic.",
+            "## Why one hop and not two",
+            "",
+            f"Two hops from the same seeds, with every profile gated the same way, reaches "
+            f"**{self.two_hop_reach:,} cards across {self.two_hop_customers:,} customers** as one "
+            "connected set. That is not twenty rings, it is the observation that this device "
+            "graph has a giant component: a card shares a specific fingerprint with a handful of "
+            "others, each of those shares a different specific fingerprint with a handful more, "
+            "and two hops is enough to join most of the graph. Two-hop co-occurrence is therefore "
+            "not evidence of anything, and the gate that makes one hop meaningful does not "
+            "survive a second.",
+            "",
+            "This is the same failure the specificity gate exists for, one hop further out. 116 "
+            "of the 9,704 profiles carry 24,653 of the card links and the largest spans 842 "
+            "cards; gating at twenty fixes the first hop and not the second.",
+            "",
+            "## What one hop found",
             "",
         ]
         if not self.components:
-            lines.append("No component reached the threshold. That is a finding, not a gap:")
-            lines.append("with the specificity gate applied, the twenty benchmark cards do")
-            lines.append("not sit in a shared-device ring.")
+            lines += [
+                f"**No component of {MIN_COMPONENT_CARDS} or more cards.** That is a finding, not "
+                "a gap: with the specificity gate applied, the twenty benchmark cards do not sit "
+                "in a shared-device ring, and R6 is correct not to fire on them.",
+            ]
             return "\n".join(lines)
 
+        rings = self.rings
         lines += [
-            "| cards | customers | confirmed fraud | exposure | ring | seeds |",
+            f"**{len(self.components)} component(s)** of {MIN_COMPONENT_CARDS} or more cards; "
+            f"**{len(rings)}** meet the ring test.",
+            "",
+            "| cards | customers | confirmed fraud | exposure | ring | reached from |",
             "|---|---|---|---|---|---|",
         ]
         for component in sorted(self.components, key=lambda c: -c.size):
@@ -162,18 +219,17 @@ class RingReport:
                 f"{len(component.confirmed_fraud_cards)} | "
                 f"${component.exposure_usd:,.2f} | "
                 f"{'**yes**' if component.is_ring else 'no'} | "
-                f"{', '.join(sorted(component.seeds))} |"
+                f"{', '.join(sorted(component.seeds)[:4])} |"
             )
-        for component in sorted(self.rings, key=lambda c: -c.size):
+        for component in sorted(rings, key=lambda c: -c.size):
             lines += [
                 "",
-                f"## Ring of {component.size} cards across {component.spans_customers} customers",
+                f"### Ring of {component.size} cards across {component.spans_customers} customers",
                 "",
-                f"- **Cards:** {', '.join(sorted(component.cards))}",
-                f"- **Shared device profiles:** {', '.join(sorted(component.devices)) or 'none recorded'}",
-                f"- **Already confirmed fraudulent:** "
-                f"{', '.join(sorted(component.confirmed_fraud_cards))}",
-                f"- **Exposure across the confirmed cases:** ${component.exposure_usd:,.2f}",
+                f"- **Cards:** {_names(component.cards)}",
+                f"- **Shared profiles:** {_names(component.devices, 6)}",
+                f"- **Already confirmed fraudulent:** {_names(component.confirmed_fraud_cards)}",
+                f"- **Exposure across those cases:** ${component.exposure_usd:,.2f}",
                 f"- **Reached from:** {', '.join(sorted(component.seeds))}",
             ]
         return "\n".join(lines)
@@ -195,35 +251,25 @@ class RingExplorer:
     window_days: int = WINDOW_DAYS
 
     async def explore(self, alerts: Sequence[Alert]) -> RingReport:
-        """Expand from every alert's card and merge what overlaps."""
+        """One hop for the rings, two hops for the measurement that bounds them."""
         edges: list[tuple[str, str]] = []
         card_device: dict[str, set[str]] = {}
         seed_of: dict[str, set[str]] = {}
         generic_skipped = 0
+        two_hop_cards: set[str] = set()
 
         for alert in alerts:
-            rows = await self._expand(alert)
-            if rows is None:
-                continue
-            pairs = _pairs(rows.get("card_device_pairs"))
-            generic_skipped += _generic_count(rows, self.max_device_cards)
-            by_device: dict[str, set[str]] = {}
-            for card, device in pairs:
-                by_device.setdefault(device, set()).add(card)
-                card_device.setdefault(card, set()).add(device)
-                seed_of.setdefault(card, set()).add(alert.card_id)
-            # The seed card itself anchors the component even when it shares
-            # nothing: a component of one is dropped later anyway.
-            seed_of.setdefault(alert.card_id, set()).add(alert.card_id)
-            for cards in by_device.values():
-                ordered = sorted(cards)
-                edges += [(ordered[0], other) for other in ordered[1:]]
-            logger.info(
-                "%s: %d card-device pairs across %d profiles",
-                alert.alert_id,
-                len(pairs),
-                len(by_device),
-            )
+            one_hop = await self._one_hop(alert)
+            if one_hop is not None:
+                shared = self._link(one_hop, alert, card_device, seed_of)
+                generic_skipped += _generic_count(one_hop, self.max_device_cards)
+                edges += shared
+            # Two hops is not used for the ring test — it reaches most of the
+            # graph — but the size it reaches is the reason, and a reason
+            # needs a number.
+            two_hop = await self._two_hop(alert)
+            if two_hop is not None:
+                two_hop_cards.update(card for card, _ in _pairs(two_hop.get("card_device_pairs")))
 
         components = _components(edges)
         out: list[Component] = []
@@ -242,25 +288,84 @@ class RingExplorer:
             seeds=len(alerts),
             components=out,
             generic_profiles_skipped=generic_skipped,
+            two_hop_reach=len(two_hop_cards),
+            two_hop_customers=len({_customer_of(card) for card in two_hop_cards}),
             window_days=self.window_days,
             max_device_cards=self.max_device_cards,
         )
 
-    async def _expand(self, alert: Alert) -> dict[str, Any] | None:
-        center = alert.opened_at - timedelta(hours=3)
+    @staticmethod
+    def _link(
+        rows: Mapping[str, Any],
+        alert: Alert,
+        card_device: dict[str, set[str]],
+        seed_of: dict[str, set[str]],
+    ) -> list[tuple[str, str]]:
+        """Edges between every pair of cards that shared one specific profile."""
+        by_device: dict[str, set[str]] = {}
+        for row in rows.get("connected_cards") or ():
+            attrs = row.get("attributes", row) if isinstance(row, Mapping) else {}
+            card = str(attrs.get("card_id") or "").strip()
+            if not card:
+                continue
+            for device in attrs.get("@via_device") or attrs.get("via_device") or ():
+                by_device.setdefault(str(device), set()).add(card)
+                card_device.setdefault(card, set()).add(str(device))
+                seed_of.setdefault(card, set()).add(alert.card_id)
+        # The seed belongs to every profile it reached the others through.
+        for device, cards in by_device.items():
+            cards.add(alert.card_id)
+            card_device.setdefault(alert.card_id, set()).add(device)
+        seed_of.setdefault(alert.card_id, set()).add(alert.card_id)
+
+        edges: list[tuple[str, str]] = []
+        for cards in by_device.values():
+            ordered = sorted(cards)
+            edges += [(ordered[0], other) for other in ordered[1:]]
+        logger.info(
+            "%s: %d card(s) share %d specific profile(s)",
+            alert.alert_id,
+            len({c for cards in by_device.values() for c in cards}) - 1,
+            len(by_device),
+        )
+        return edges
+
+    async def _one_hop(self, alert: Alert) -> dict[str, Any] | None:
+        """`ring_expand` — cards sharing one *specific* profile with the seed."""
+        return await self._query(
+            "ring_expand",
+            alert,
+            {
+                "c_in": alert.card_id,
+                "center": self._center(alert),
+                "days": self.window_days,
+                "max_device_cards": self.max_device_cards,
+            },
+        )
+
+    async def _two_hop(self, alert: Alert) -> dict[str, Any] | None:
+        return await self._query(
+            "ring_expand_2hop",
+            alert,
+            {
+                "c_in": alert.card_id,
+                "center": self._center(alert),
+                "days": self.window_days,
+                "max_device_cards": self.max_device_cards,
+                "max_cards": MAX_CARDS_PER_HOP,
+            },
+        )
+
+    def _center(self, alert: Alert) -> str:
+        return (alert.opened_at - timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")
+
+    async def _query(
+        self, name: str, alert: Alert, params: dict[str, Any]
+    ) -> dict[str, Any] | None:
         try:
-            return await self.graph.run_query(
-                "ring_expand_2hop",
-                {
-                    "c_in": alert.card_id,
-                    "center": center.strftime("%Y-%m-%d %H:%M:%S"),
-                    "days": self.window_days,
-                    "max_device_cards": self.max_device_cards,
-                    "max_cards": MAX_CARDS_PER_HOP,
-                },
-            )
+            return await self.graph.run_query(name, params)
         except Exception as exc:  # noqa: BLE001 - one failed seed must not end the sweep
-            logger.warning("ring_expand_2hop failed on %s: %s", alert.card_id, exc)
+            logger.warning("%s failed on %s: %s", name, alert.card_id, exc)
             return None
 
     async def _annotate(self, component: Component) -> None:
@@ -281,6 +386,14 @@ class RingExplorer:
 
 
 # ── plain functions ──────────────────────────────────────────────────────────
+
+
+def _names(values: Sequence[str], limit: int = NAMED_CARDS) -> str:
+    """A readable list. A ring worth reading is short; 1,339 ids say nothing."""
+    ordered = sorted(values)
+    if len(ordered) <= limit:
+        return ", ".join(ordered) or "none"
+    return f"{', '.join(ordered[:limit])} and {len(ordered) - limit} more"
 
 
 def _customer_of(card_id: str) -> str:

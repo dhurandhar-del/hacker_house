@@ -163,7 +163,7 @@
       "CC-2306",
       "CC-3279"
     ],
-    "summary": "The evidence shows card-not-present activity on a device marked new for this account, with every unnamed match flag true and no proxy recorded. The transaction amount of $59.67 is not a tiny probe authorization, and the card has never been used on this device before or charged near $59.67 before. Prior retrieved cases for this card or customer also include several confirmed card-not-present new-device fraud cases, so this looks consistent with that pattern rather than legitimate activity.",
+    "summary": "This is an online card-not-present purchase, and the identity record marks the device as new for the account. The card has never been used on this device before, every one of the unnamed match flags is true, and the transaction carries no distance value, which together fit the same new-device fraud pattern seen in the prior confirmed cases. The amount is not a tiny probe authorization, so this is not card testing; the evidence points to card-not-present fraud from a new device rather than legitimate activity.",
     "written_to_graph": true,
     "graph_case_id": "CASE-HHG-016"
   },
@@ -205,6 +205,6 @@
   },
   "stop_reason": "Policy 6: probability 0.99 is at or above 0.85 with 4 independent pieces of evidence.",
   "tool_calls": 11,
-  "tokens": 6805,
-  "latency_s": 15.68
+  "tokens": 6625,
+  "latency_s": 16.3
 }

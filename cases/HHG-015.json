@@ -116,6 +116,14 @@
         ]
       },
       {
+        "claim": "The card has 23 prior purchases of product code R.",
+        "source": "graph",
+        "ref": "query:product_novelty(card_id=C03042-K1, product=R, as_of=2016-11-17 14:03:36)",
+        "entity_ids": [
+          "C03042-K1"
+        ]
+      },
+      {
         "claim": "The card has prior history.",
         "source": "graph",
         "ref": "query:region_novelty(card_id=C03042-K1, region=327.0, as_of=2016-11-17 14:03:36)",
@@ -149,14 +157,6 @@
         "entity_ids": [
           "C03042-K1",
           "327.0"
-        ]
-      },
-      {
-        "claim": "The card has 23 prior purchases of product code R.",
-        "source": "graph",
-        "ref": "query:product_novelty(card_id=C03042-K1, product=R, as_of=2016-11-17 14:03:36)",
-        "entity_ids": [
-          "C03042-K1"
         ]
       },
       {
@@ -230,7 +230,7 @@
       "CC-0615",
       "CC-5006"
     ],
-    "summary": "This is an online card-not-present transaction on a device marked new for the account, with every unnamed match flag true and no proxy recorded. The amount is $599.94, which is above the cardholder’s prior mean and more than two standard deviations above it, and this card had never been charged near $599.94 before. The card also had never been used in billing region 327.0 before this transaction, but the cardholder has prior history and there were 3 in-person transactions in a different billing region within a day, so the evidence points to suspicious card-not-present activity rather than a clear legitimate trip.",
+    "summary": "This is an online card-not-present transaction on a device marked new for the account, with every unnamed match flag true and no proxy recorded. The amount, $599.94, is well above the card’s prior mean and is unlike the card’s earlier spending, which supports fraud concern, but the card also has prior history, the billing country is the home country, and the card was used in person in 3 transaction(s) in a different billing region within a day of this one. Overall, the evidence most strongly fits card-not-present fraud from a new device rather than a confirmed legitimate purchase.",
     "written_to_graph": true,
     "graph_case_id": "CASE-HHG-015"
   },
@@ -261,7 +261,7 @@
         "reason": "3a: a case is opened once fraud probability reaches 0.30 (assessed 0.89) or evidence has been requested"
       }
     ],
-    "what_changed": "The final recommendation remained no report because the exposure stayed at $599.94, which is at or below the $1,000 reporting threshold, and the activity did not connect to any shared device profile, region cluster, or other customer's fraud. The evidence request and uncompleted step-up challenge supported the fraud assessment, but they did not change the policy outcome."
+    "what_changed": "The final recommendation changed from escalation to no report because the completed review confirmed the activity met policy 3a for no filing: exposure was $599.94, at or below $1,000, and the activity did not connect to any shared device profile, region cluster, or other customer's fraud."
   },
   "sar": {
     "file": false,
@@ -271,8 +271,8 @@
     "total_amount_usd": 0.0,
     "activity_dates": []
   },
-  "stop_reason": "Stopped under policy 3a: no report, because exposure $599.94 is at or below $1,000 and the activity connects to no shared device profile, region cluster, or other customer's fraud.",
+  "stop_reason": "Investigation ended under policy 3a because the exposure was $599.94, which is at or below $1,000, and no shared device profile, region cluster, or other customer's fraud was identified.",
   "tool_calls": 14,
-  "tokens": 7350,
-  "latency_s": 13.82
+  "tokens": 7306,
+  "latency_s": 17.3
 }

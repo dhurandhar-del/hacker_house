@@ -211,12 +211,12 @@
     "similar_prior_cases": [
       "CC-2011",
       "CC-4437",
-      "CC-2087",
+      "CC-5026",
       "CC-5129",
       "CC-1083",
-      "CC-5026"
+      "CC-2087"
     ],
-    "summary": "This is an online, card-not-present transaction on a device marked new for the account, with no proxy recorded and an identity match check failure. The card has prior history and prior use in billing region 264.0, and the amount and product code are not out of line with the card’s past activity, so the evidence is not a clean fit for card testing or out-of-region use. The strongest signal is card-not-present fraud from a new device, but the record also contains legitimate-looking features, so this is suspicious rather than definitive.",
+    "summary": "This is an online card-not-present transaction on a device marked new for the account, with no proxy recorded and an identity match check that failed. The card has never been used on this device before, and every one of the card's unnamed match flags is true, which pushes the evidence toward fraud. At the same time, the amount is not a sub-$5 probe, the billing country is the cardholder's home country, and the card has prior history and prior purchases of product code R, so this is not a card-testing or out-of-region pattern. The evidence most strongly fits card-not-present fraud from a new device rather than a confirmed legitimate purchase.",
     "written_to_graph": true,
     "graph_case_id": "CASE-HHG-019"
   },
@@ -268,6 +268,6 @@
   },
   "stop_reason": "Policy 6: probability 0.88 is at or above 0.85 with 5 independent pieces of evidence.",
   "tool_calls": 14,
-  "tokens": 7479,
-  "latency_s": 17.06
+  "tokens": 7435,
+  "latency_s": 15.4
 }

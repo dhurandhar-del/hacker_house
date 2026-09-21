@@ -1,0 +1,18 @@
+{
+  "method": {
+    "hops": 1,
+    "window_days": 30,
+    "max_device_cards": 20,
+    "min_component_cards": 3,
+    "max_ring_cards": 40,
+    "note": "Device profiles above max_device_cards are browser configurations rather than devices and are excluded. The ring test runs at one hop: two hops reaches a single giant component, which is reported as two_hop_reach rather than as a ring."
+  },
+  "seeds": 20,
+  "generic_profiles_skipped": 0,
+  "two_hop_reach": 1374,
+  "two_hop_customers": 1354,
+  "components_found": 0,
+  "rings_found": 0,
+  "components": [],
+  "generated_at": "2026-09-21 16:10:13"
+}

@@ -116,14 +116,6 @@
         ]
       },
       {
-        "claim": "The card has 6 prior purchases of product code R.",
-        "source": "graph",
-        "ref": "query:product_novelty(card_id=C02923-K1, product=R, as_of=2016-12-07 21:38:37)",
-        "entity_ids": [
-          "C02923-K1"
-        ]
-      },
-      {
         "claim": "The card has prior history.",
         "source": "graph",
         "ref": "query:region_novelty(card_id=C02923-K1, region=330.0, as_of=2016-12-07 21:38:37)",
@@ -157,6 +149,14 @@
         "entity_ids": [
           "C02923-K1",
           "330.0"
+        ]
+      },
+      {
+        "claim": "The card has 6 prior purchases of product code R.",
+        "source": "graph",
+        "ref": "query:product_novelty(card_id=C02923-K1, product=R, as_of=2016-12-07 21:38:37)",
+        "entity_ids": [
+          "C02923-K1"
         ]
       },
       {
@@ -218,11 +218,11 @@
       "CC-1024",
       "CC-2717",
       "CC-0699",
-      "CC-2857",
       "CC-2400",
+      "CC-2857",
       "CC-3105"
     ],
-    "summary": "This is an online card-not-present transaction on a device marked new for the account, which is a stronger fraud signal than a routine online purchase. However, the amount is $100.07, the billing country is the cardholder's home country, there is no proxy, and the card has prior history with this product code and billing region. The prior closed cases also show two cleared alerts for similar $100.xx purchases from a new phone, so the evidence is mixed and could be legitimate new-device activity rather than fraud.",
+    "summary": "The evidence shows a card-not-present online purchase on a device marked new for this account, which is a stronger fraud signal than an ordinary online transaction. However, the amount is consistent with prior activity, the billing region is well established, no proxy was recorded, and prior closed cases include cleared alerts for similar $100 purchases from a new phone. Taken together, this looks like a new-device online purchase that is suspicious but also plausibly legitimate rather than a confirmed fraud pattern.",
     "written_to_graph": true,
     "graph_case_id": "CASE-HHG-005"
   },
@@ -260,6 +260,6 @@
   },
   "stop_reason": "3a: no report. exposure $100.07 is at or below $1,000; the activity connects to no shared device profile, region cluster or other customer's fraud.",
   "tool_calls": 14,
-  "tokens": 7447,
-  "latency_s": 16.6
+  "tokens": 7470,
+  "latency_s": 17.36
 }

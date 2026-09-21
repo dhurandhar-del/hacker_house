@@ -172,12 +172,12 @@
     "similar_prior_cases": [
       "CC-3332",
       "CC-3587",
-      "CC-2964",
-      "CC-4898",
       "CC-1066",
+      "CC-4898",
+      "CC-2964",
       "CC-4004"
     ],
-    "summary": "This looks like legitimate card-present activity rather than a fraud pattern. The transaction is in the cardholder’s home country, billing region 444.0 is already established for this card, and the amount and product code fit prior history. The small distance value and the false match flag are not enough on their own to override the stronger legitimate indicators, and the prior cleared travel-related cases show this card has had both legitimate and fraudulent alerts before.",
+    "summary": "This transaction is card-present, in the cardholder’s home country, and in billing region 444.0, which is already established for this card with 10 prior transactions. The amount, product code W, and timing are all consistent with the card’s prior history, and the evidence does not show a fraud sequence or a new-device or out-of-region pattern. The prior cases include both cleared alerts and confirmed out-of-region fraud, but this specific transaction itself looks legitimate rather than fraudulent.",
     "written_to_graph": true,
     "graph_case_id": "CASE-HHG-001"
   },
@@ -209,6 +209,6 @@
   },
   "stop_reason": "Policy 6: probability 0.02 is at or below 0.15 with 4 independent pieces of evidence.",
   "tool_calls": 14,
-  "tokens": 6986,
-  "latency_s": 14.99
+  "tokens": 7118,
+  "latency_s": 22.88
 }

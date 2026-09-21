@@ -175,9 +175,9 @@
       "CC-0104",
       "CC-1313",
       "CC-1317",
-      "CC-4196"
+      "CC-3821"
     ],
-    "summary": "This looks like legitimate card-present activity rather than a fraud pattern. The transaction was in the cardholder’s home billing country and in a billing region that is well established for this card, with prior product code W history and an amount that fits the card’s prior spending. The model score was high, but the surrounding facts, including the cardholder’s prior cleared travel-related alerts and the lack of a probe sequence or account-takeover style mixed-channel activity, do not support a fraud pattern here.",
+    "summary": "This transaction looks legitimate rather than fraudulent. It was card-present in the cardholder’s home country, in a billing region with extensive prior history on the card, and the amount is consistent with the card’s prior spending patterns. The model score was high, but the surrounding evidence does not fit card testing, card-not-present fraud, or a new-region trip pattern.",
     "written_to_graph": true,
     "graph_case_id": "CASE-HHG-007"
   },
@@ -209,6 +209,6 @@
   },
   "stop_reason": "Policy 6: probability 0.08 is at or below 0.15 with 4 independent pieces of evidence.",
   "tool_calls": 14,
-  "tokens": 7111,
-  "latency_s": 16.79
+  "tokens": 7068,
+  "latency_s": 16.59
 }

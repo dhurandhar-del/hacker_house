@@ -22,10 +22,10 @@ from fastapi import Query
 from api.controller import ApiController, route
 from api.errors import conflict
 from api.schemas import (
-    BatchAccepted,
-    BatchRequest,
+    BenchmarkAccepted,
     BenchmarkCase,
     BenchmarkReport,
+    BenchmarkRequest,
     HistogramBin,
     StartInvestigationRequest,
     ValidationFinding,
@@ -94,7 +94,7 @@ class BenchmarkController(ApiController):
             )
         return _score(cases, answers, len(self.container.alerts))
 
-    async def start(self, body: BatchRequest) -> BatchAccepted:
+    async def start(self, body: BenchmarkRequest) -> BenchmarkAccepted:
         """Start every case in the batch, oldest alert first.
 
         Serial, through the same registry a single investigation uses, because
@@ -117,13 +117,13 @@ class BenchmarkController(ApiController):
         asyncio.create_task(  # noqa: RUF006 - the registry owns the run's lifetime
             self._run_batch(ordered, batch_id, body), name=f"benchmark-{batch_id}"
         )
-        return BatchAccepted(
+        return BenchmarkAccepted(
             batch_id=batch_id,
             case_ids=ordered,
             stream_url=f"/api/benchmark/runs/{batch_id}/events",
         )
 
-    async def _run_batch(self, case_ids: list[str], batch_id: str, body: BatchRequest) -> None:
+    async def _run_batch(self, case_ids: list[str], batch_id: str, body: BenchmarkRequest) -> None:
         """One case at a time, awaiting each before starting the next.
 
         Serial is the requirement, not a simplification: a late case may only

@@ -116,14 +116,6 @@
         ]
       },
       {
-        "claim": "The widest device profile on this card spans 52 cards, so it identifies a browser configuration rather than a device.",
-        "source": "graph",
-        "ref": "query:ring_expand(card_id=C13487-K1, center=2016-11-22 16:11:00, days=30, max_device_cards=20)",
-        "entity_ids": [
-          "C13487-K1"
-        ]
-      },
-      {
         "claim": "The card has prior history.",
         "source": "graph",
         "ref": "query:region_novelty(card_id=C13487-K1, region=191.0, as_of=2016-11-22 16:11:00)",
@@ -176,6 +168,14 @@
         ]
       },
       {
+        "claim": "The widest device profile on this card spans 52 cards, so it identifies a browser configuration rather than a device.",
+        "source": "graph",
+        "ref": "query:ring_expand(card_id=C13487-K1, center=2016-11-22 16:11:00, days=30, max_device_cards=20)",
+        "entity_ids": [
+          "C13487-K1"
+        ]
+      },
+      {
         "claim": "This card has never been charged near $74.96 before.",
         "source": "graph",
         "ref": "query:amount_band_probe(card_id=C13487-K1, amt=74.96, tol=0.5, as_of=2016-11-22 16:11:00)",
@@ -222,7 +222,7 @@
       "CC-0423",
       "CC-4085"
     ],
-    "summary": "This is an online card-not-present transaction on a device marked new for the account, and the connection came through a proxy. The card’s match flags are all true, the device profile is unusually broad, and the amount is unlike the card’s prior near-$74.96 history, which together fit the same device-linked fraud pattern seen in prior confirmed cases. At the same time, the billing region is established for this card and the identity match checks did not fail, so the evidence is suspicious but not conclusive on its own.",
+    "summary": "The evidence shows card-not-present activity on a device marked new for this account, with an anonymous proxy connection and all unnamed match flags true. The transaction is online, the amount is unlike this card's prior near-$74.96 history, and prior closed cases for this card or customer include multiple confirmed card-not-present new-device fraud cases. At the same time, the card has prior history, the billing region is well established, and the identity match checks did not fail, so this is suspicious but not proof on its own.",
     "written_to_graph": true,
     "graph_case_id": "CASE-HHG-014"
   },
@@ -248,7 +248,7 @@
         "reason": "3a: a case is opened once fraud probability reaches 0.30 (assessed 0.48) or evidence has been requested"
       }
     ],
-    "what_changed": "The initial case opening was driven by an elevated model assessment and the need to gather evidence, but the final review lowered the fraud probability to 0.48 and the step-up challenge was passed, so the activity no longer met the threshold for a report. The transaction also remained low exposure at $74.96 and showed no shared device profile, region cluster, or other-customer fraud linkage."
+    "what_changed": "nothing"
   },
   "sar": {
     "file": false,
@@ -258,8 +258,8 @@
     "total_amount_usd": 0.0,
     "activity_dates": []
   },
-  "stop_reason": "3a: no report. Fraud is neither confirmed nor strongly suspected (probability 0.48); exposure $74.96 is at or below $1,000; and the activity connects to no shared device profile, region cluster or other customer's fraud.",
+  "stop_reason": "3a: no report. Fraud is neither confirmed nor strongly suspected (probability 0.48); exposure $74.96 is at or below $1,000; and the activity connects to no shared device profile, region cluster, or other customer's fraud.",
   "tool_calls": 15,
-  "tokens": 7692,
-  "latency_s": 17.77
+  "tokens": 7768,
+  "latency_s": 18.35
 }

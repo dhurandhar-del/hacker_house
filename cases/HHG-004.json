@@ -159,14 +159,14 @@
       }
     ],
     "similar_prior_cases": [
-      "CC-0696",
       "CC-1891",
-      "CC-2008",
       "CC-3778",
+      "CC-0696",
+      "CC-2008",
       "CC-1736",
       "CC-2038"
     ],
-    "summary": "The evidence shows card-not-present fraud from a new device. The flagged $128.33 online purchase was made on a device marked new for this account, with every unnamed match flag true and no proxy recorded, and the amount is unusual for this card’s prior history. This is also consistent with the cardholder’s prior confirmed fraud case on the same card, which involved online purchases inconsistent with the cardholder’s usual activity.",
+    "summary": "The evidence shows card-not-present activity on a device marked new for this account, with every unnamed match flag true and no proxy recorded. The $128.33 online purchase is also unusual for this card because it is above the prior mean of $35.31 and more than two standard deviations above the prior mean ($90.89), and the card has never been charged near $128.33 before. Prior closed cases for this cardholder include confirmed card-not-present fraud, so this looks consistent with that pattern rather than legitimate use.",
     "written_to_graph": true,
     "graph_case_id": "CASE-HHG-004"
   },
@@ -208,6 +208,6 @@
   },
   "stop_reason": "Policy 6: probability 0.99 is at or above 0.85 with 4 independent pieces of evidence.",
   "tool_calls": 11,
-  "tokens": 6692,
-  "latency_s": 18.86
+  "tokens": 6754,
+  "latency_s": 17.94
 }

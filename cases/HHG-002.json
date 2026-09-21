@@ -135,7 +135,7 @@
       "CC-1432",
       "CC-2315"
     ],
-    "summary": "This is an online card-not-present transaction with several fraud-leaning signals: a high model score, all unnamed match flags true, no distance value, and an amount that is well above the card’s prior mean and outside its usual range. The card also has a prior confirmed card-not-present fraud case, which makes this pattern more concerning. At the same time, the amount is not a tiny probe authorization and the card has 35 prior purchases of product code C, so the evidence supports suspicious card-not-present use rather than card testing. There is not enough here to call it legitimate.",
+    "summary": "The evidence shows a card-not-present online purchase that is unusual for this card and customer. The amount is far above the card's prior mean, has never been seen near this level before, and the card's match flags are all true, which pushes the case toward fraud. The prior confirmed fraud case on this card/customer also involved unrecognized online activity, while the cleared cases were travel-related and do not explain this transaction.",
     "written_to_graph": true,
     "graph_case_id": "CASE-HHG-002"
   },
@@ -166,7 +166,7 @@
         "reason": "3a: a case is opened once fraud probability reaches 0.30 (assessed 0.75) or evidence has been requested"
       }
     ],
-    "what_changed": "The final recommendation did not change because the case remained below the reporting threshold and the evidence did not establish a shared device profile, region cluster, or linkage to another customer's fraud. The no-reply outcome only supported continued monitoring, not a report."
+    "what_changed": "The final recommendation remained no report because the exposure was only $292.36 and the activity did not connect to any shared device profile, region cluster, or other customer's fraud. The evidence request produced no reply within 24 hours, which supported monitoring but did not change the no-report outcome."
   },
   "sar": {
     "file": false,
@@ -176,8 +176,8 @@
     "total_amount_usd": 0.0,
     "activity_dates": []
   },
-  "stop_reason": "Investigation ended under policy 3a: no report, because exposure $292.36 is at or below $1,000 and the activity connects to no shared device profile, region cluster or other customer's fraud.",
+  "stop_reason": "Stopped under policy 3a: no report, because exposure $292.36 is at or below $1,000 and the activity connects to no shared device profile, region cluster, or other customer's fraud.",
   "tool_calls": 13,
-  "tokens": 6253,
-  "latency_s": 16.92
+  "tokens": 5834,
+  "latency_s": 13.31
 }

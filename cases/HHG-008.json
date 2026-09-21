@@ -4,7 +4,7 @@
     "status": "closed_fraud",
     "verdict": "fraud",
     "fraud_probability": 0.9627,
-    "pattern": "card_not_present_new_device",
+    "pattern": "card_not_present_fraud",
     "pattern_description": "",
     "affected_txn_ids": [
       "3553223",
@@ -171,7 +171,7 @@
       "CC-4871",
       "CC-2418"
     ],
-    "summary": "This is an online card-not-present transaction that the customer says they did not make, and the evidence leans fraud. The device was previously seen elsewhere for the account, every unnamed match flag is true, and the card has prior confirmed cases of card-not-present fraud and card-not-present fraud from a new device. Some details are consistent with the cardholder’s history, including prior use of this device 9 time(s) before and an amount near prior charges, so this is not a clean one-transaction proof by itself.",
+    "summary": "The evidence shows an online card-not-present purchase that the customer says they did not make, and the transaction is consistent with prior confirmed card-not-present fraud on this card. The device was previously seen on the account and there was no proxy, so this is not the stronger new-device variant, but the transaction still has multiple fraud-leaning signals including all unnamed match flags being true and no distance value. Legitimate indicators are present too, including prior use of this device 9 time(s) before and an amount that is within the card's historical range, so the evidence supports card-not-present fraud rather than a card-testing or account-takeover pattern.",
     "written_to_graph": true,
     "graph_case_id": "CASE-HHG-008"
   },
@@ -223,6 +223,6 @@
   },
   "stop_reason": "Policy 6: probability 0.96 is at or above 0.85 with 5 independent pieces of evidence.",
   "tool_calls": 11,
-  "tokens": 6771,
-  "latency_s": 16.45
+  "tokens": 6669,
+  "latency_s": 15.27
 }

@@ -177,7 +177,7 @@
       "CC-0340",
       "CC-2027"
     ],
-    "summary": "The evidence shows a card-not-present purchase that the customer says they did not make. It was online, without the card present, and the card has prior confirmed cases of the same kind of online misuse, which supports fraud more than a routine purchase. At the same time, the amount is $30.02, the billing country is the cardholder's home country, and the amount is not the sub-$5 size a probe authorisation uses, so this is not card testing and the transaction details alone are not a perfect fit for a broader account takeover pattern.",
+    "summary": "The evidence shows a card-not-present online purchase that the customer says they did not make. The transaction is not a tiny probe authorization and there is no card-present travel pattern or other sign of out-of-region use; instead, the strongest signals are the online channel, the match-flag anomalies, and the customer report. The amount is also consistent with prior charges on this card, so this is not a card-testing sequence, but the overall record still fits card-not-present fraud more than legitimate activity.",
     "written_to_graph": true,
     "graph_case_id": "CASE-HHG-009"
   },
@@ -233,8 +233,8 @@
     "total_amount_usd": 0.0,
     "activity_dates": []
   },
-  "stop_reason": "Investigation ended under policy 3a because fraud was neither confirmed nor strongly suspected at probability 0.57, exposure was $30.02 at or below $1,000, and the activity did not connect to any shared device profile, region cluster, or other customer's fraud.",
+  "stop_reason": "The investigation ended under policy condition 3a because fraud was neither confirmed nor strongly suspected at probability 0.57, the exposure was $30.02 and therefore at or below $1,000, and the activity did not connect to any shared device profile, region cluster, or other customer's fraud.",
   "tool_calls": 12,
-  "tokens": 7358,
-  "latency_s": 18.21
+  "tokens": 7050,
+  "latency_s": 17.1
 }

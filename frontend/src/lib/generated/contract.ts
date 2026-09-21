@@ -1850,3 +1850,5 @@ export type RunPage = Page<RunSummary>;
 export type ExecutionPage = Page<ExecutionRecord>;
 
 export type AuditPage = Page<AuditItem>;
+
+export type ApprovalPage = Page<ApprovalItem>;

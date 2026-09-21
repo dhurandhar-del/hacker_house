@@ -1550,24 +1550,6 @@ class BenchmarkCase(BaseModel):
     errors: list[ValidationFinding] = Field(default_factory=list)
 
 
-class BatchRequest(BaseModel):
-    """``POST /api/benchmark/runs`` — run the pack, or a named subset."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    case_ids: list[str] = Field(default_factory=list, description="Empty means the whole pack.")
-    order: BatchOrder = BatchOrder.CHRONOLOGICAL
-    mode: RunMode = RunMode.LIVE
-
-
-class BatchAccepted(BaseModel):
-    """202. The batch is running; watch it on the stream."""
-
-    batch_id: str
-    case_ids: list[str]
-    stream_url: str
-
-
 class BenchmarkReport(BaseModel):
     """``GET /api/benchmark/report`` — whether the last batch is defensible.
 

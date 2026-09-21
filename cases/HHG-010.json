@@ -216,7 +216,7 @@
       "CC-0699",
       "CC-1024"
     ],
-    "summary": "This is an online card-not-present purchase on a device marked new for the account, with every unnamed match flag true and no proxy recorded. The amount, $1,000.03, is unusual for this card and above its prior mean, but the card also has prior history in billing region 469.0 and prior purchases of product code R, so the evidence is suspicious rather than conclusive. The prior cleared cases show this customer has previously made unusual purchases that were later confirmed, so legitimate activity remains plausible.",
+    "summary": "This is an online card-not-present purchase on a device marked new for the account, with no proxy recorded and no prior use of this card on that device. The amount, $1,000.03, is unusual for this card and above its prior mean, but the billing region is the cardholder's home country and well established for the card, with no card-present activity in another billing region within a day. The evidence points to suspicious card-not-present use from a new device, but it is not proof of fraud on its own.",
     "written_to_graph": true,
     "graph_case_id": "CASE-HHG-010"
   },
@@ -271,7 +271,7 @@
   "sar": {
     "file": true,
     "reason": "3a: fraud confirmed or strongly suspected and exposure $1,000.03 exceeds $1,000.",
-    "narrative": "Customer C10434, using card C10434-K1, was associated with a fraud case in which the bank assessed the transaction at probability 0.95 and classified the pattern as card_not_present_new_device. On 2016-12-02 15:18:27, transaction 3506725 for $1,000.03 was conducted online in billing region 469.0 without the card present. The bank’s model scored the transaction 0.90, in its highest band, and the amount was above the $500 band and above the card’s prior mean of $131.25. The transaction amount was also more than two standard deviations above the card’s prior mean ($486.15) and the card had never been charged near $1,000.03 before. The identity record marked the device as new for the account, the card had never been used on this device before, and no proxy was recorded on the connection. All unnamed match flags M1-M9 were true, although the identity match checks did not fail and the billing country was the cardholder’s home country. The card had prior history, including 24 prior transactions in billing region 469.0 and 9 prior purchases of product code R, with billing region 469.0 first seen on 2016-07-06 23:54:46. The previous transaction occurred 117.4 hours earlier, and there was no card-present activity in another billing region within a day. Based on the confirmed or strongly suspected fraud and exposure of $1,000.03, the activity was suspicious and warranted filing a suspicious activity report.",
+    "narrative": "Customer C10434 and card C10434-K1 were associated with a suspected fraudulent card-not-present transaction on 2016-12-02 15:18:27. The transaction was id 3506725 for $1,000.03 and was conducted online in billing region 469.0. The bank’s model scored the transaction 0.90, which was in its highest band, and the case was assessed at fraud probability 0.95. The identity record showed the device as new for the account, the card had never been used on this device before, and no proxy was recorded on the connection. The cardholder’s match flags M1 through M9 were all true, but the identity match checks did not fail and the billing country was the cardholder’s home country. The amount was above the $500 band, was not consistent with a sub-$5 probe authorization, and was more than two standard deviations above the card’s prior mean. The card had prior history, including 24 prior transactions in billing region 469.0 and 9 prior purchases of product code R, but this was the first transaction near $1,000.03 and the previous transaction occurred 117.4 hours earlier. No card-present activity in another billing region occurred within a day, and the billing region was well established for this card with first use on 2016-07-06 23:54:46. Based on the new device, card-not-present online channel, unusually high amount, and strong fraud indicators, the activity was determined to be strongly suspicious and a SAR was required.",
     "subjects": [
       "C10434",
       "C10434-K1"
@@ -284,6 +284,6 @@
   },
   "stop_reason": "Policy 6: probability 0.95 is at or above 0.85 with 5 independent pieces of evidence.",
   "tool_calls": 14,
-  "tokens": 7662,
-  "latency_s": 16.36
+  "tokens": 7645,
+  "latency_s": 17.08
 }

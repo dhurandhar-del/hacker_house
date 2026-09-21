@@ -222,7 +222,7 @@
       "CC-5095",
       "CC-2533"
     ],
-    "summary": "The evidence shows a card-not-present online purchase on a device marked new for this account, with every unnamed match flag true and no proxy recorded. The card has prior history in billing region 264.0, which is well established, and there is no card-present activity in another billing region within a day, so this does not fit out-of-region use. The amount is not a tiny probe authorization, and there is no sequence of multiple small online authorizations, so this is not card testing. Prior cases on this card include both cleared new-phone purchases and confirmed account takeover, so the current transaction is suspicious but not proof of fraud.",
+    "summary": "The evidence shows a single online card-not-present purchase on a device marked new for this account, with no proxy and no failed identity match checks. The card has prior history in billing region 264.0, and that region is well established for the card, so this is not out-of-region use. The amount and product are unusual for this card, and the prior account history includes confirmed account takeover cases, but this transaction by itself is still most consistent with card-not-present fraud from a new device rather than proof of fraud.",
     "written_to_graph": true,
     "graph_case_id": "CASE-HHG-020"
   },
@@ -260,6 +260,6 @@
   },
   "stop_reason": "3a: no report. exposure $125.08 is at or below $1,000; the activity connects to no shared device profile, region cluster or other customer's fraud.",
   "tool_calls": 14,
-  "tokens": 7391,
-  "latency_s": 14.67
+  "tokens": 7517,
+  "latency_s": 25.34
 }
