@@ -168,6 +168,7 @@ filter the memory claim would be a leak rather than a capability.
 | [docs/CALIBRATION.md](docs/CALIBRATION.md) | How `fraud_probability` is fitted, and the selection-bias trap |
 | [docs/LOADING.md](docs/LOADING.md) | How the data gets into TigerGraph, and what had to be derived |
 | [frontend/DESIGN_SYSTEM.md](frontend/DESIGN_SYSTEM.md) | Tokens, semantics, components, contrast |
+| [deploy/README.md](deploy/README.md) | **Deploying it** — the API on EC2 behind nginx, the console on Amplify |
 | `cases/` | **The deliverable** — one answer file per benchmark case |
 | `exploration/` | Autonomous findings. Never part of a graded answer |
 
