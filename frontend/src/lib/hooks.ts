@@ -113,6 +113,30 @@ export function useAudit(caseId?: string) {
   });
 }
 
+/** The case subgraph. Costs a live graph round trip, so it is opt-in. */
+export function useCanvas(caseId: string, enabled: boolean) {
+  const role = useRole().role;
+  return useQuery({
+    queryKey: ["canvas", caseId, role],
+    queryFn: () => api.canvas(caseId, role),
+    enabled: enabled && Boolean(caseId),
+    staleTime: 60_000,
+    // The workspace wakes in about 45 seconds and answers a cold query with a
+    // 502 while it does. One retry turns that into a slow load, not a failure.
+    retry: 1,
+  });
+}
+
+/** The ring sweep as `explore rings` last wrote it. A file, so it is cheap. */
+export function useRings() {
+  const role = useRole().role;
+  return useQuery({
+    queryKey: ["rings", role],
+    queryFn: () => api.rings(role),
+    staleTime: Infinity,
+  });
+}
+
 export function useBenchmark() {
   const role = useRole().role;
   return useQuery({ queryKey: ["benchmark", role], queryFn: () => api.benchmark(role) });
@@ -142,6 +166,25 @@ export function useDecideApproval() {
       void client.invalidateQueries({ queryKey: ["approvals"] });
       void client.invalidateQueries({ queryKey: ["audit"] });
       void client.invalidateQueries({ queryKey: ["actions"] });
+    },
+  });
+}
+
+/**
+ * Start the whole pack.
+ *
+ * This is a real batch — twenty live investigations against the graph and the
+ * model, several minutes and real tokens — so the button that calls it arms
+ * before it fires. The mutation itself does not guard; the control does.
+ */
+export function useRunAll() {
+  const role = useRole().role;
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.runAll(role),
+    onSettled: () => {
+      void client.invalidateQueries({ queryKey: ["cases"] });
+      void client.invalidateQueries({ queryKey: ["benchmark"] });
     },
   });
 }

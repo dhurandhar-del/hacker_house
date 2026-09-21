@@ -24,6 +24,7 @@ import type {
   ApprovalDecisionResult,
   ApprovalPage,
   AuditPage,
+  BenchmarkAccepted,
   BenchmarkReport,
   CaseDetail,
   CasePage,
@@ -34,6 +35,7 @@ import type {
   Meta,
   Role,
   RunAccepted,
+  RingReport,
   RunDetail,
   SarBody,
   TraceBody,
@@ -175,6 +177,7 @@ export const api = {
   actions: (id: string, role: Role) => request<ActionPlan>(`/api/cases/${id}/actions`, { role }),
   canvas: (id: string, role: Role) =>
     request<GraphCanvas>(`/api/graph/cases/${id}`, { role }),
+  rings: (role: Role) => request<RingReport>("/api/graph/rings", { role }),
 
   startInvestigation: (caseId: string, role: Role) =>
     request<RunAccepted>("/api/investigations", {
@@ -208,6 +211,12 @@ export const api = {
     }),
 
   audit: (query: Query, role: Role) => request<AuditPage>("/api/audit", { query, role }),
+  runAll: (role: Role) =>
+    request<BenchmarkAccepted>("/api/benchmark/runs", {
+      method: "POST",
+      body: { case_ids: [], order: "chronological", concurrency: 1, mode: "live" },
+      role,
+    }),
   benchmark: (role: Role) => request<BenchmarkReport>("/api/benchmark/report", { role }),
 };
 

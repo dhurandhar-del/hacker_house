@@ -29,6 +29,8 @@ export default {
           DEFAULT: "var(--accent)",
           tint: "var(--accent-tint)",
           contrast: "var(--accent-contrast)",
+          /* Decoration only — it does not meet 3:1. See tokens.css. */
+          bold: "var(--accent-bold)",
         },
         danger: {
           DEFAULT: "var(--danger)",
@@ -45,6 +47,12 @@ export default {
           tint: "var(--warning-tint)",
           contrast: "var(--warning-contrast)",
         },
+        info: {
+          DEFAULT: "var(--info)",
+          tint: "var(--info-tint)",
+          contrast: "var(--info-contrast)",
+        },
+        txn: "var(--txn)",
         authority: {
           DEFAULT: "var(--authority)",
           tint: "var(--authority-tint)",
@@ -72,7 +80,7 @@ export default {
         3: "var(--elev-3)",
       },
       fontFamily: {
-        sans: ["var(--font-inter)", "system-ui", "-apple-system", "sans-serif"],
+        sans: ["var(--font-sans)", "system-ui", "-apple-system", "sans-serif"],
         mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "monospace"],
       },
       fontSize: {
@@ -90,6 +98,7 @@ export default {
       },
       zIndex: {
         sticky: "var(--z-sticky)",
+        view: "var(--z-view)",
         dropdown: "var(--z-dropdown)",
         drawer: "var(--z-drawer)",
         dialog: "var(--z-dialog)",

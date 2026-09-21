@@ -15,6 +15,7 @@ the single biggest reason a connection in this dataset means nothing.
 
 from __future__ import annotations
 
+import json
 from typing import Any, ClassVar
 
 from fastapi import Query
@@ -27,6 +28,9 @@ from api.schemas import (
     GraphLegendEntry,
     GraphNode,
     GraphNodeKind,
+    RingComponent,
+    RingDeviceLink,
+    RingReport,
 )
 from sentinel.graph.normalize import ResponseNormalizer
 from sentinel.memory.store import graph_case_id
@@ -62,8 +66,54 @@ class GraphController(ApiController):
                     404: "No case vertex has been written for this case.",
                     503: "The graph is unreachable or waking.",
                 },
-            )
+            ),
+            route(
+                "/rings",
+                self.rings,
+                summary="The ring sweep as `explore rings` last wrote it.",
+            ),
         ]
+
+    async def rings(self) -> RingReport:
+        """Serve `exploration/rings.json`, or say plainly that it is not there.
+
+        Never recomputed here. The sweep walks every seed's device
+        neighbourhood and that is a few hundred graph calls; a page load is
+        not the place to spend them, and an artefact both the CLI and the
+        console read cannot drift between them.
+        """
+        path = self.container.settings.exploration_dir / "rings.json"
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return RingReport(available=False)
+        if not isinstance(raw, dict):
+            return RingReport(available=False)
+        method = raw.get("method") or {}
+        return RingReport(
+            available=True,
+            generated_at=str(raw.get("generated_at", "")),
+            hops=int(method.get("hops", 1)),
+            window_days=int(method.get("window_days", 30)),
+            max_device_cards=int(method.get("max_device_cards", 20)),
+            seeds=int(raw.get("seeds", 0)),
+            generic_profiles_skipped=int(raw.get("generic_profiles_skipped", 0)),
+            two_hop_reach=int(raw.get("two_hop_reach", 0)),
+            two_hop_customers=int(raw.get("two_hop_customers", 0)),
+            components_found=int(raw.get("components_found", 0)),
+            rings_found=int(raw.get("rings_found", 0)),
+            components=[
+                RingComponent.model_validate(component)
+                for component in raw.get("components") or []
+                if isinstance(component, dict)
+            ],
+            examined=[
+                RingDeviceLink.model_validate(link)
+                for link in raw.get("examined") or []
+                if isinstance(link, dict)
+            ],
+            note=str(method.get("note", "")),
+        )
 
     async def canvas(
         self,

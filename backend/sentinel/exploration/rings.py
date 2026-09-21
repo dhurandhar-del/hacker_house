@@ -125,6 +125,31 @@ class Component:
         }
 
 
+#: How much of the examined neighbourhood is written out. The whole two-hop
+#: set is 1,385 cards, which is the point being made and not a drawing; these
+#: caps keep the artefact readable and the canvas legible while still showing
+#: the shape.
+EXAMINED_DEVICES = 48
+EXAMINED_CARDS = 10
+
+
+@dataclass
+class DeviceLink:
+    """One device profile and the cards seen on it, inside the window.
+
+    Recorded whether or not it goes on to form a component. A sweep that
+    reports only what passed its gates cannot be checked: "no ring" and
+    "nothing was looked at" produce the same empty file. This is the looking.
+    """
+
+    device: str
+    cards: list[str]
+    seeds: list[str]
+
+    def as_dict(self) -> dict[str, Any]:
+        return {"device": self.device, "cards": self.cards, "seeds": self.seeds}
+
+
 @dataclass
 class RingReport:
     """Everything the sweep found, and everything it deliberately did not look at."""
@@ -132,6 +157,9 @@ class RingReport:
     seeds: int
     components: list[Component]
     generic_profiles_skipped: int
+    #: Every device the sweep examined, with the cards on it. The evidence for
+    #: the negative result.
+    examined: list[DeviceLink] = field(default_factory=list)
     #: Cards reachable in *two* hops from the seeds, as one connected set. The
     #: number that rules two-hop co-occurrence out as evidence of a ring.
     two_hop_reach: int = 0
@@ -165,6 +193,7 @@ class RingReport:
             "components_found": len(self.components),
             "rings_found": len(self.rings),
             "components": [c.as_dict() for c in self.components],
+            "examined": [link.as_dict() for link in self.examined],
         }
 
     def as_markdown(self) -> str:
@@ -257,6 +286,7 @@ class RingExplorer:
         seed_of: dict[str, set[str]] = {}
         generic_skipped = 0
         two_hop_cards: set[str] = set()
+        two_hop_links: dict[str, set[str]] = {}
 
         for alert in alerts:
             one_hop = await self._one_hop(alert)
@@ -269,7 +299,34 @@ class RingExplorer:
             # needs a number.
             two_hop = await self._two_hop(alert)
             if two_hop is not None:
-                two_hop_cards.update(card for card, _ in _pairs(two_hop.get("card_device_pairs")))
+                for card, device in _pairs(two_hop.get("card_device_pairs")):
+                    two_hop_cards.add(card)
+                    two_hop_links.setdefault(device, set()).add(card)
+
+        # What the sweep actually looked at, so the negative result can be
+        # inspected rather than taken on trust.
+        #
+        # One hop shares nothing on this pack — `card_device` is empty, which
+        # is the finding. So the neighbourhood recorded here is the *second*
+        # hop: the thing that does connect, and the reason it is not evidence.
+        # It is the picture worth drawing, because "1,385 cards" is a number
+        # and a giant component is a shape.
+        by_device: dict[str, set[str]] = {
+            device: set(cards) for device, cards in two_hop_links.items()
+        }
+        for card, devices in card_device.items():
+            for device in devices:
+                by_device.setdefault(device, set()).add(card)
+        examined = [
+            DeviceLink(
+                device=device,
+                cards=sorted(cards)[:EXAMINED_CARDS],
+                seeds=sorted({seed for card in cards for seed in seed_of.get(card, ())}),
+            )
+            for device, cards in sorted(
+                by_device.items(), key=lambda item: (-len(item[1]), item[0])
+            )[:EXAMINED_DEVICES]
+        ]
 
         components = _components(edges)
         out: list[Component] = []
@@ -287,6 +344,7 @@ class RingExplorer:
         return RingReport(
             seeds=len(alerts),
             components=out,
+            examined=examined,
             generic_profiles_skipped=generic_skipped,
             two_hop_reach=len(two_hop_cards),
             two_hop_customers=len({_customer_of(card) for card in two_hop_cards}),

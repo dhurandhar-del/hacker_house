@@ -6,7 +6,7 @@ One hop from 20 seed cards through device profiles gated at 20 cards, a 30-day w
 
 ## Why one hop and not two
 
-Two hops from the same seeds, with every profile gated the same way, reaches **1,374 cards across 1,354 customers** as one connected set. That is not twenty rings, it is the observation that this device graph has a giant component: a card shares a specific fingerprint with a handful of others, each of those shares a different specific fingerprint with a handful more, and two hops is enough to join most of the graph. Two-hop co-occurrence is therefore not evidence of anything, and the gate that makes one hop meaningful does not survive a second.
+Two hops from the same seeds, with every profile gated the same way, reaches **1,377 cards across 1,357 customers** as one connected set. That is not twenty rings, it is the observation that this device graph has a giant component: a card shares a specific fingerprint with a handful of others, each of those shares a different specific fingerprint with a handful more, and two hops is enough to join most of the graph. Two-hop co-occurrence is therefore not evidence of anything, and the gate that makes one hop meaningful does not survive a second.
 
 This is the same failure the specificity gate exists for, one hop further out. 116 of the 9,704 profiles carry 24,653 of the card links and the largest spans 842 cards; gating at twenty fixes the first hop and not the second.
 

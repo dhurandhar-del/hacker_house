@@ -49,6 +49,7 @@ from api.services import (
 )
 from api.sse import EventJournal, JournalingEventEmitter, SseBroker
 from api.store import Database
+from api.store.traces import TraceArchive
 from sentinel.agents.orchestrator import InvestigationOrchestrator, SentinelOrchestrator
 from sentinel.config.settings import Settings
 from sentinel.domain.alert import Alert
@@ -154,6 +155,8 @@ class Container:
     graph: GraphRepository
     db: Database
     journal: EventJournal
+    #: Recorded runs from the batch runner, which this process never journalled.
+    traces: TraceArchive
     broker: SseBroker
     policy: PolicyEngine
     routing: RoutingTable
@@ -272,6 +275,7 @@ class Container:
             graph=graph,
             db=db,
             journal=EventJournal(db),
+            traces=TraceArchive(settings.runs_dir),
             broker=SseBroker(queue_size=settings.sse_subscriber_queue_size),
             policy=policy,
             routing=routing,

@@ -35,15 +35,17 @@ of six.
 ## Verified state
 
 ```
-pytest tests/unit tests/integration -q      341 passed
+pytest tests/unit tests/integration -q      349 passed
 pytest tests/live -m live -q                16 passed   (against the live workspace)
 ruff check api sentinel tests               All checks passed!
-ruff format --check api sentinel tests      119 files already formatted
-mypy --strict                               Success: no issues found in 100 source files
+ruff format --check api sentinel tests      121 files already formatted
+mypy --strict                               Success: no issues found in 102 source files
 python -m sentinel validate --no-graph      20/20 valid
 python -m api.contract emit --check         up to date
 cd frontend && npx tsc --noEmit             clean
 cd frontend && npm run build                Compiled successfully
+cd frontend && npm run smoke                23/23 checks passed  (headless Chromium)
+python scripts/check_contrast.py --check    every token clears its bar in both themes
 ```
 
 The unit and integration suites need no network and no credentials: the agent
@@ -64,7 +66,7 @@ over an in-memory database.
 | **M3** | GraphRAG live | `PolicyDoc` > 0; 5,565 `ClosedCase.emb`; retrieval recall ≥ 4/6 | ✅ **5 of 6** |
 | **M4** | One case end to end | valid file, non-zero tokens, ≥1 `document` evidence item | ✅ |
 | **M5** | **20 answer files** ← the gate | all valid; block ≤ 0.50; ≥6 with initial ≠ final | ✅ **20/20, 8 changed** |
-| **M6** | Console usable | live stream, reconnect replays | ✅ **verified over HTTP** |
+| **M6** | Console usable | live stream, reconnect replays | ✅ **verified over HTTP, and in a browser** |
 | **M7** | Permission boundary | 403 → approve → execute | ✅ **end to end, and tested** |
 | **M8** | Score raised | calibration review, ring discovery | ✅ both |
 | **M9** | Shipped | video, blog, social | ⚠️ blog and social drafted; **no video** |
@@ -197,14 +199,18 @@ are now carried verbatim in the prompt, and the policy path has no model in it.
 
 | id | Work | Why it matters |
 |---|---|---|
-| **Z5** | Demo video, 3–5 minutes | **Required, and cannot be produced from a terminal** — it needs a screen recording |
-| **F10** | Graph canvas in the console | The endpoint is built and tested; the React Flow view is not. The memory tab shows retrieval provenance as a list, which is the cut-list fallback |
+| **Z5** | Demo video, 3–5 minutes | **Required, and cannot be produced from a terminal** — it needs a screen recording. The console's own **Run demo** button now walks the three acts unattended, so the recording is a screen capture rather than a performance |
 | **Z6/Z7** | Publish the blog and the social post | Both drafted — [BLOG.md](../BLOG.md), [SOCIAL.md](../SOCIAL.md). Two URLs to fill in once they are live |
+
+**F10 is closed.** The graph canvas is built and draws the live subgraph; see
+below.
 
 ### The API and the console
 
-Twenty-nine endpoints under `/api`. Four screens: the queue, the case detail,
-the approvals inbox and the benchmark. The permission walk is verified end to
+Thirty endpoints under `/api`. **One screen**, not four: the console is a
+single surface — queue rail, case panel, graph pane — with three views
+(console, monitor, ring) and the approvals inbox as a drawer over the top,
+ported from the design study in `UI/`. The permission walk is verified end to
 end, over HTTP and in the test suite:
 
 ```
@@ -216,6 +222,28 @@ team_lead approves it      -> executed, simulated, audited
 
 SSE carries `retry: 2000` and a monotonic `id:` per run; reconnecting with
 `Last-Event-ID: 30` returns 31 onward, contiguous, with no duplicate.
+
+**The run flow.** Nineteen of the twenty cases were investigated days ago, so
+their evidence is on disk rather than on the wire. The console replays it at
+the cadence it was produced — one posting every 460ms, the probability moving
+as each lands — and labels it `replay of <run id>`, because a replay dressed
+as a live run is a lie about when the work happened. **Run demo** walks three
+acts over three real cases chosen from the live queue by what the agent
+concluded: the strongest fraud, the case the bank's model scored highest and
+the agent cleared anyway, and the ring that is not there.
+
+**The graph canvas** (F10, previously cut) draws `/api/graph/cases/{id}` as a
+breadth-first ring layout — deterministic, so the same case draws the same
+picture on two screens in a call. **The ring view** draws the real two-hop
+device neighbourhood out of `exploration/rings.json`, because at one hop
+there is genuinely nothing to draw and a console that renders a ring anyway
+is the failure the whole sweep exists to avoid.
+
+Verified in a real browser: `npm run smoke` drives Chromium through the
+masthead, the queue, a replay advancing, the graph pane's nodes, all five
+tabs, both full-screen views and the drawer — 23 checks, failing on any
+console error. It runs with the OS forced to dark, because the console is a
+light instrument and following the preference was a defect it caught.
 
 ### Ring discovery
 

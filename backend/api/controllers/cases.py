@@ -171,7 +171,8 @@ class CasesController(ApiController):
             answer=answer,
             run=run,
             validation=validation,
-            trace_available=run is not None and await self._has_journal(run.run_id),
+            trace_available=(run is not None and await self._has_journal(run.run_id))
+            or self.container.traces.has(case_id),
             actions=plan,
         )
 
@@ -184,12 +185,20 @@ class CasesController(ApiController):
     async def trace(self, case_id: str, run_id: str = "") -> TraceBody:
         self._alert(case_id)
         resolved = run_id or await self._last_run_id(case_id)
-        if not resolved:
+        if resolved:
+            events = await self.container.journal.since(resolved, 0)
+            if events:
+                return _trace_from(case_id, resolved, events)
+        # Nothing in this process journalled it. The twenty graded answers were
+        # produced by the batch runner, whose journal is on disk — replaying it
+        # is what makes the investigation tab show the run that actually
+        # happened rather than nothing at all.
+        archived = self.container.traces.latest(
+            case_id, fraud_probability=await self._settled_probability(case_id)
+        )
+        if archived is None:
             raise not_found("trace for case", case_id)
-        events = await self.container.journal.since(resolved, 0)
-        if not events:
-            raise not_found("trace", resolved)
-        return _trace_from(case_id, resolved, events)
+        return _trace_from(case_id, archived.run_id, archived.events)
 
     async def validation(self, case_id: str, graph: bool = True) -> ValidationBody:
         """Re-run the validator now, rather than serving what the run recorded.
@@ -340,6 +349,28 @@ class CasesController(ApiController):
     async def _has_journal(self, run_id: str) -> bool:
         return await self.container.journal.count(run_id) > 0
 
+    async def _settled_probability(self, case_id: str) -> float | None:
+        """What the served answer settled on, which identifies its run."""
+        answer = await self.container.answers.load(case_id)
+        return answer.case.fraud_probability if answer is not None else None
+
+    async def _events(self, case_id: str) -> Sequence[SseEnvelope]:
+        """This case's journal, from memory if this process ran it, else disk.
+
+        The two are the same events: the archive stores exactly what the live
+        stream carried. Preferring memory means a run happening right now wins
+        over the recording of an older one.
+        """
+        run_id = await self._last_run_id(case_id)
+        if run_id:
+            events = await self.container.journal.since(run_id, 0)
+            if events:
+                return events
+        archived = self.container.traces.latest(
+            case_id, fraud_probability=await self._settled_probability(case_id)
+        )
+        return archived.events if archived is not None else []
+
     async def _retrieval_provenance(
         self, case_id: str
     ) -> tuple[list[RetrievalHit], list[RetrievalHit]]:
@@ -349,12 +380,12 @@ class CasesController(ApiController):
         `retrieval.completed` event carried it: the fused list carries both,
         and which ranking found a case is the thing the memory tab is for.
         """
-        run_id = await self._last_run_id(case_id)
         structural: list[RetrievalHit] = []
         vector: list[RetrievalHit] = []
-        if not run_id:
+        events = await self._events(case_id)
+        if not events:
             return structural, vector
-        for event in await self.container.journal.since(run_id, 0):
+        for event in events:
             if event.type != "retrieval.completed":
                 continue
             for raw in event.payload.get("hits") or ():
@@ -410,8 +441,12 @@ def _trace_from(case_id: str, run_id: str, events: Sequence[SseEnvelope]) -> Tra
                 "postings_in_step": int(payload.get("postings_in_step") or 0),
             }
         elif event.type == "tool.called":
-            calls.setdefault(int(payload.get("step") or 0), []).append(
-                ToolCalledPayload.model_validate(payload)
+            # The step belongs to the envelope. Older recorded runs did not
+            # also copy it into the payload, so read the envelope and fall
+            # back to the payload rather than the other way round.
+            number = event.step if event.step is not None else int(payload.get("step") or 0)
+            calls.setdefault(number, []).append(
+                ToolCalledPayload.model_validate(payload | {"step": number})
             )
         elif event.type == "evidence.posted":
             postings.append(PostingView.model_validate(payload))

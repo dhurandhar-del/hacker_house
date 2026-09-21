@@ -1,5 +1,5 @@
-import { CaseQueue } from "@/components/queue/CaseQueue";
+import { Console } from "@/components/console/Console";
 
-export default function QueuePage() {
-  return <CaseQueue />;
+export default function HomePage() {
+  return <Console />;
 }

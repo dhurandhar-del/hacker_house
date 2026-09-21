@@ -1498,6 +1498,70 @@ class GraphCanvas(BaseModel):
     legend: list[GraphLegendEntry] = Field(default_factory=list)
 
 
+class RingComponent(BaseModel):
+    """One connected component the ring sweep kept.
+
+    A component is not yet a ring: R6 requires it to be multi-customer,
+    time-concentrated and to match no documented pattern. ``is_ring`` is the
+    sweep's own verdict after those gates, so the console can draw a candidate
+    and a confirmed ring differently instead of implying every cluster counts.
+    """
+
+    component_id: str = ""
+    cards: list[str] = Field(default_factory=list)
+    devices: list[str] = Field(default_factory=list)
+    seeds: list[str] = Field(default_factory=list)
+    customers: list[str] = Field(default_factory=list)
+    confirmed_fraud_cards: list[str] = Field(default_factory=list)
+    exposure_usd: float = 0.0
+    is_ring: bool = False
+
+
+class RingDeviceLink(BaseModel):
+    """One device profile and the cards seen on it inside the window.
+
+    Recorded whether or not it formed a component, because a sweep that
+    reports only its hits cannot be told apart from a sweep that never ran.
+    """
+
+    device: str = ""
+    cards: list[str] = Field(default_factory=list)
+    seeds: list[str] = Field(default_factory=list)
+
+
+class RingReport(BaseModel):
+    """``GET /api/graph/rings`` — the ring sweep, as the CLI last wrote it.
+
+    Read from ``exploration/rings.json`` rather than recomputed: the sweep
+    costs a few hundred graph calls and the console is not the place to spend
+    them. Serving the artefact also means the page and
+    ``python -m sentinel explore rings`` cannot disagree.
+
+    ``available`` false is the honest answer when the sweep has never run —
+    distinct from a sweep that ran and found nothing, which is
+    ``rings_found: 0`` and is a result.
+    """
+
+    available: bool = False
+    generated_at: str = ""
+    hops: int = 1
+    window_days: int = 30
+    max_device_cards: int = 20
+    seeds: int = 0
+    generic_profiles_skipped: int = 0
+    #: How far two hops reaches. On this pack it is a giant component, which is
+    #: the measurement that rules the second hop out rather than a finding.
+    two_hop_reach: int = 0
+    two_hop_customers: int = 0
+    components_found: int = 0
+    rings_found: int = 0
+    components: list[RingComponent] = Field(default_factory=list)
+    #: Every device the sweep looked at. The evidence for the negative result,
+    #: and what the console draws when there is no ring to draw.
+    examined: list[RingDeviceLink] = Field(default_factory=list)
+    note: str = ""
+
+
 # ── the benchmark ────────────────────────────────────────────────────────────
 
 

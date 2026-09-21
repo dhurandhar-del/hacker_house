@@ -9,7 +9,7 @@ import { VerdictChip } from "@/components/ui/VerdictChip";
 import { StatusChip } from "@/components/ui/StatusChip";
 import { PatternChip } from "@/components/ui/PatternChip";
 import { ProbabilityMeter } from "@/components/ui/ProbabilityMeter";
-import { EvidenceItem } from "@/components/case/EvidenceItem";
+import { EvidenceItem } from "@/components/ui/EvidenceItem";
 import type { EvidencePostedPayload } from "@/lib/generated/contract";
 import { usd } from "@/lib/format";
 

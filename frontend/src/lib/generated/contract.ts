@@ -1499,6 +1499,66 @@ export interface GraphCanvas {
 }
 
 /**
+ * One connected component the ring sweep kept.
+ *
+ * A component is not yet a ring: R6 requires it to be multi-customer,
+ * time-concentrated and to match no documented pattern. `is_ring` is the
+ * sweep's own verdict after those gates, so the console can draw a candidate
+ * and a confirmed ring differently instead of implying every cluster counts.
+ */
+export interface RingComponent {
+  component_id: string;
+  cards: string[];
+  devices: string[];
+  seeds: string[];
+  customers: string[];
+  confirmed_fraud_cards: string[];
+  exposure_usd: number;
+  is_ring: boolean;
+}
+
+/**
+ * One device profile and the cards seen on it inside the window.
+ *
+ * Recorded whether or not it formed a component, because a sweep that
+ * reports only its hits cannot be told apart from a sweep that never ran.
+ */
+export interface RingDeviceLink {
+  device: string;
+  cards: string[];
+  seeds: string[];
+}
+
+/**
+ * `GET /api/graph/rings` — the ring sweep, as the CLI last wrote it.
+ *
+ * Read from `exploration/rings.json` rather than recomputed: the sweep
+ * costs a few hundred graph calls and the console is not the place to spend
+ * them. Serving the artefact also means the page and
+ * `python -m sentinel explore rings` cannot disagree.
+ *
+ * `available` false is the honest answer when the sweep has never run —
+ * distinct from a sweep that ran and found nothing, which is
+ * `rings_found: 0` and is a result.
+ */
+export interface RingReport {
+  available: boolean;
+  generated_at: string;
+  hops: number;
+  window_days: number;
+  max_device_cards: number;
+  seeds: number;
+  generic_profiles_skipped: number;
+  two_hop_reach: number;
+  two_hop_customers: number;
+  components_found: number;
+  rings_found: number;
+  components: RingComponent[];
+  examined: RingDeviceLink[];
+  note: string;
+}
+
+/**
  * `GET /api/cases/{case_id}/sar` — 200 even when `file` is false.
  *
  * A 404 for a case that decided *not* to file would hide `sar.reason`,

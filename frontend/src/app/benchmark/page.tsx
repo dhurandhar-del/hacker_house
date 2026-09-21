@@ -1,5 +1,5 @@
-import { BenchmarkScreen } from "@/components/shell/BenchmarkScreen";
+import { Console } from "@/components/console/Console";
 
 export default function BenchmarkPage() {
-  return <BenchmarkScreen />;
+  return <Console initialView="monitor" />;
 }

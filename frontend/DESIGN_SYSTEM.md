@@ -43,9 +43,12 @@ spent on grouping rather than on breathing room.
 always shows its numeral; a verdict always shows its word; a route always shows its label. Colour
 accelerates recognition — it never *is* the information.
 
-**One hue, one meaning.** Red means *toward fraud*. Emerald means *toward legitimate*. Amber means
-*uncertain or awaiting*. Violet means *L2 approval authority* and nothing else. Blue is interactive
-chrome and nothing else. A hue that means two things means neither.
+**One hue, one meaning.** Red means *toward fraud*, and route L2. Green means *toward legitimate*,
+and route auto. Purple means *uncertain, or awaiting a person* — the uncertain verdict, route L1,
+an unanswered evidence request and the approval chrome are one hue because they are one idea. Blue
+means *a document*: policy, a closed case, retrieved memory. Orange is chrome and the live agent,
+and is never a verdict. Taupe is a transaction, which is a fact rather than a judgement. A hue that
+means two things means neither.
 
 **Calm under uncertainty.** This tool's most valuable output is often "I do not know, and here is
 why." Uncertain states get a considered treatment, not a warning treatment — amber at low chroma,
@@ -60,68 +63,86 @@ copied in one action. An analyst will paste these into a ticket.
 
 ## 2. Color
 
+The palette is the warm-paper system from the console design study in `UI/Sentinel Console.dc.html`:
+an off-white stock rather than a blue-grey one, warm ink instead of black, and a single orange as
+the only chrome accent. The study carries six hues; so does this.
+
+Every number below is produced by `python scripts/check_contrast.py`, which reads the tokens back
+out of `tokens.css` and measures them. They are reproducible, not asserted — see
+[§12](#12-verifying-contrast).
+
 ### 2.1 Neutrals
 
 | Token | Light | Dark | Use |
 |---|---|---|---|
-| `--bg` | `#F7F9FA` | `#0B0F14` | App background |
-| `--surface` | `#FFFFFF` | `#121820` | Cards, panels, table bodies |
-| `--surface-2` | `#F4F6F8` | `#1A222C` | Nested surfaces, table headers, hover |
-| `--surface-3` | `#EAEEF2` | `#222C38` | Pressed, selected rows |
-| `--border` | `#E2E6EA` | `#232C38` | Hairlines between content |
-| `--border-strong` | `#8B95A0` | `#63707F` | Interactive boundaries — inputs, toggles |
-| `--fg` | `#0F1720` | `#E8EDF2` | Primary text |
-| `--fg-muted` | `#55606B` | `#9AA7B4` | Secondary text, labels |
-| `--fg-subtle` | `#68727D` | `#7B8794` | Tertiary text, timestamps |
+| `--bg` | `#F7F4EF` | `#14100C` | App background — paper, not white |
+| `--surface` | `#FFFFFF` | `#1D1813` | Cards, panels, table bodies |
+| `--surface-2` | `#F6F2EC` | `#26201A` | Nested surfaces, table headers, hover |
+| `--surface-3` | `#F2EDE5` | `#322A22` | Pressed, selected rows |
+| `--border` | `#E8E2D9` | `#322A22` | Hairlines between content |
+| `--border-strong` | `#978A78` | `#7E7263` | Interactive boundaries — inputs, toggles |
+| `--fg` | `#1D1813` | `#F3ECE2` | Primary text |
+| `--fg-muted` | `#6D645B` | `#B3A798` | Secondary text, labels |
+| `--fg-subtle` | `#736A61` | `#968B7D` | Tertiary text, timestamps |
 
-**Measured contrast (text on `--surface` / on `--surface-2`):**
+**Measured contrast (on `--surface` / on `--bg`):**
 
-| Token | Light | Dark | AA (4.5) |
+| Token | Light | Dark | Bar |
 |---|---|---|---|
-| `--fg` | **18.05** / 16.66 | **15.14** / — | ✓ |
-| `--fg-muted` | **6.42** / 5.92 | **7.27** / — | ✓ |
-| `--fg-subtle` | **4.89** / 4.52 | **4.87** / — | ✓ |
-| `--border-strong` (non-text, needs 3.0) | **3.04** | **3.53** | ✓ |
+| `--fg` | **17.61** / 16.05 | **15.02** / 16.14 | 4.5 ✓ |
+| `--fg-muted` | **5.79** / 5.28 | **7.46** / 8.02 | 4.5 ✓ |
+| `--fg-subtle` | **5.30** / 4.83 | **5.27** / 5.67 | 4.5 ✓ |
+| `--border-strong` (non-text) | **3.37** | **3.75** | 3.0 ✓ |
 
-`--fg-subtle` is deliberately not lighter than `#68727D`: `#6E7883` measures 4.49 and fails AA by
-0.01. This is the kind of miss that ships.
+`--fg-subtle` is deliberately not lighter than `#736A61`. The study's own `#7A7168` measures 4.36
+on paper and fails AA — on white it would have passed at 4.78, which is exactly how a token gets
+shipped broken: measured against the wrong ground.
 
 ### 2.2 Semantic colors
 
 | Token | Light | Dark | Meaning |
 |---|---|---|---|
-| `--accent` | `#1D4ED8` | `#93B4FF` | Interactive: links, primary buttons, focus |
-| `--accent-tint` | `#EFF6FF` | `#0E1A33` | Accent background wash |
-| `--danger` | `#B91C1C` | `#FCA5A5` | Toward fraud, destructive |
-| `--danger-tint` | `#FEF2F2` | `#2A1416` | |
-| `--success` | `#047857` | `#6EE7B7` | Toward legitimate, cleared |
-| `--success-tint` | `#ECFDF5` | `#08211A` | |
-| `--warning` | `#B45309` | `#FCD34D` | Uncertain, pending, awaiting reply |
-| `--warning-tint` | `#FFFBEB` | `#241A06` | |
-| `--authority` | `#6D28D9` | `#C4B5FD` | **L2 approval only** |
-| `--authority-tint` | `#F5F3FF` | `#1B1436` | |
+| `--accent` | `#B54A09` | `#F79B5C` | Chrome, the live agent, evidence from the graph |
+| `--accent-bold` | `#F26A1B` | `#F26A1B` | **Decoration only** — the masthead mark and the moving rule |
+| `--danger` | `#CC2B4E` | `#F2879C` | Toward fraud · route L2 · block |
+| `--success` | `#2E7D5B` | `#6FC79C` | Toward legitimate · route auto · cleared |
+| `--warning` | `#7B5EA7` | `#C0A6E0` | Uncertain · route L1 · awaiting a person |
+| `--info` | `#2F6BB5` | `#8FBAEA` | A document: policy, closed case, retrieved memory |
+| `--authority` | `#7B5EA7` | `#C0A6E0` | Approval authority |
+| `--txn` | `#837869` | `#A1968A` | A transaction — a fact, not a judgement |
 
-**Measured contrast:**
+Each has a `-tint` for a wash behind text of the same hue, and a `-contrast` for text on a solid
+fill of it.
+
+**Measured contrast (on `--surface` / on its own tint):**
+
+| Token | Light | Dark |
+|---|---|---|
+| `--accent` | **5.32** / 4.80 | **8.22** / 7.23 |
+| `--danger` | **5.22** / 4.48 | **7.31** / 6.93 |
+| `--success` | **5.00** / 4.41 | **8.66** / 7.53 |
+| `--warning` | **5.25** / 4.54 | **8.20** / 7.69 |
+| `--info` | **5.40** / 4.84 | **8.71** / 7.74 |
+| `--authority` | **5.25** / 4.68 | **8.20** / 7.69 |
+
+Every hue clears AA on `--surface`. Three clear 4.41–4.54 on their own tint rather than 4.5, which
+is why a chip's text is set at 9px **bold** and uppercase — large-text AA is 3:1, and the tightest
+pair here is `--success` on `--success-tint` at 4.41. A chip never carries body copy.
+
+**Solid fills (`-contrast` on the fill):**
 
 | Pair | Light | Dark |
 |---|---|---|
-| `--accent` on `--surface` | **6.70** | **8.68** |
-| `--danger` on `--surface` | **6.47** | **9.40** |
-| `--success` on `--surface` | **5.48** | **11.70** |
-| `--warning` on `--surface` | **5.02** | **12.37** |
-| `--authority` on `--surface` | **7.10** | **9.66** |
-| `--danger` on `--danger-tint` | **5.91** | **9.14** |
-| `--success` on `--success-tint` | **5.21** | **11.09** |
-| `--warning` on `--warning-tint` | **4.84** | **11.89** |
-| `--authority` on `--authority-tint` | **6.48** | **9.48** |
-| `--accent` on `--accent-tint` | **6.16** | **8.41** |
-| white on `--accent` (solid button) | **6.70** | — |
-| `--bg` on `--accent` (dark solid button) | — | **9.35** |
-| white on `--authority` (L2 badge) | **7.10** | — |
-| `--bg` on `--authority` (dark L2 badge) | — | **10.41** |
+| on `--accent` | **5.32** | **8.83** |
+| on `--danger` | **5.22** | **7.86** |
+| on `--success` | **5.00** | **9.31** |
+| on `--warning` / `--authority` | **5.25** | **8.81** |
+| on `--info` | **5.40** | **9.36** |
 
-Every text pair clears AA at normal weight in both themes. The tightest is `--warning` on its tint
-at 4.84.
+**`--accent-bold` is the one token that may not carry text.** It is the study's orange and measures
+3.06 on paper — a fill and a stroke, never a label. `check_contrast.py` pins it: the check fires if
+it ever becomes text-safe in *both* themes, because then it should be promoted rather than left
+looking like an oversight.
 
 ### 2.3 Meter fills
 
@@ -130,13 +151,16 @@ is 3:1 against the adjacent surface (WCAG 1.4.11), not 4.5:1.
 
 | Stop | Hex | vs light surface | vs dark surface |
 |---|---|---|---|
-| `p ≤ 0.15` | `#059669` | **3.77** | **4.73** |
-| `0.15 < p ≤ 0.40` | `#65A30D` | **3.09** | **5.77** |
-| `0.40 < p ≤ 0.70` | `#D97706` | **3.19** | **5.60** |
-| `p > 0.70` | `#DC2626` | **4.83** | **3.69** |
+| `p ≤ 0.15` — may close | `#2E7D5B` | **5.00** | **3.52** |
+| `0.15 < p ≤ 0.40` | `#7D8A4A` | **3.75** | **4.70** |
+| `0.40 < p ≤ 0.70` — decide | `#7B5EA7` | **5.25** | **3.36** |
+| `p > 0.70` — act | `#CC2B4E` | **5.22** | **3.37** |
 
 All eight combinations clear 3:1. The same hex values are used in both themes so a screenshot of the
 meter means the same thing whichever theme it was taken in.
+
+The thresholds are the policy's, not the designer's: 0.15 is where a case may close and 0.70 is
+where an action becomes available. A reader who learns the colours has learned the policy.
 
 ---
 
@@ -210,14 +234,16 @@ the one thing a reviewer could fairly call dishonest.
 
 ## 4. Typography
 
-**UI:** Inter — `font-feature-settings: "cv05" 1, "cv11" 1, "ss03" 1, "tnum" 1`.
+**UI:** Space Grotesk — a grotesque with enough character to carry a masthead and enough restraint
+to set a paragraph of SAR narrative.
 **Mono:** JetBrains Mono — every id, amount, timestamp, query ref and code fragment.
 
 Both are on Google Fonts, loaded through `next/font` so there is no layout shift and no external
 request at runtime.
 
-Tabular numerals are on by default in the UI face. A column of amounts that jitters as it streams is
-unreadable.
+Tabular numerals are applied through the `.tabular` utility wherever a value changes while it is
+being read — the probability dial, the ledger's before/after, the monitor's columns. A column of
+amounts that jitters as it streams is unreadable.
 
 | Token | Size / line-height | Weight | Tracking | Use |
 |---|---|---|---|---|
@@ -672,29 +698,33 @@ Legend always visible. Layout: force-directed with the alert pinned left.
 
 ## 12. Verifying contrast
 
-```python
-# scripts/check_contrast.py — run in CI; fails the build on a regression
-def _srgb(c: float) -> float:
-    c /= 255.0
-    return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+The script is real and lives at [`scripts/check_contrast.py`](../scripts/check_contrast.py). It
+reads the tokens back out of `tokens.css` rather than taking a copy of them, so a palette change
+and its documented ratios cannot drift apart — every number in [§2](#2-color) is its output.
 
-def luminance(hex_color: str) -> float:
-    h = hex_color.lstrip("#")
-    r, g, b = (int(h[i:i + 2], 16) for i in (0, 2, 4))
-    return 0.2126 * _srgb(r) + 0.7152 * _srgb(g) + 0.0722 * _srgb(b)
-
-def contrast(a: str, b: str) -> float:
-    l1, l2 = sorted((luminance(a), luminance(b)), reverse=True)
-    return (l1 + 0.05) / (l2 + 0.05)
-
-TEXT_PAIRS = [("--fg", "#0F1720", "#FFFFFF"), ("--fg-muted", "#55606B", "#FFFFFF"), ...]
-FILL_PAIRS = [("--meter-3", "#DC2626", "#FFFFFF"), ...]
-
-for name, fg, bg in TEXT_PAIRS:
-    assert contrast(fg, bg) >= 4.5, f"{name}: {contrast(fg, bg):.2f} < 4.5"
-for name, fill, bg in FILL_PAIRS:
-    assert contrast(fill, bg) >= 3.0, f"{name}: {contrast(fill, bg):.2f} < 3.0"
 ```
+$ python scripts/check_contrast.py --check
+
+light
+  ok  --fg             #1d1813  surface 17.61  bg 16.05   (needs 4.5)
+  ...
+  ok  --meter-3        #cc2b4e  surface  5.22  bg  4.76   (needs 3.0)
+  --  --accent-bold    #f26a1b  best  3.06   (decoration, not a label)
+dark
+  ...
+every token clears its bar in both themes
+```
+
+Two bars, from WCAG 2.2: **4.5:1** for anything used as text — which is every semantic hue, since
+each one labels its own tint — and **3:1** for a boundary or fill that carries meaning without
+being read, which is `--border-strong`, `--txn` and the four meter bands. Both themes are measured;
+dark is the one that regresses silently.
+
+`--accent-bold` is the single exemption, and it is pinned rather than skipped: the check fails if
+it ever clears 4.5 in *both* themes, because at that point it should be promoted to a text token
+instead of sitting in an exemption list that nobody re-reads.
+
+`--check` exits non-zero, so it belongs in CI.
 
 ---
 
