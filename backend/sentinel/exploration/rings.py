@@ -130,7 +130,7 @@ class Component:
 #: caps keep the artefact readable and the canvas legible while still showing
 #: the shape.
 EXAMINED_DEVICES = 48
-EXAMINED_CARDS = 10
+EXAMINED_CARDS = 20
 
 
 @dataclass
@@ -160,6 +160,11 @@ class RingReport:
     #: Every device the sweep examined, with the cards on it. The evidence for
     #: the negative result.
     examined: list[DeviceLink] = field(default_factory=list)
+    #: The most interesting thing the sweep saw that is *not* a ring: the
+    #: fingerprint shared by the most customers at two hops. Annotated like a
+    #: component so it can be read the same way, and reported separately so it
+    #: can never be counted as one.
+    focus: Component | None = None
     #: Cards reachable in *two* hops from the seeds, as one connected set. The
     #: number that rules two-hop co-occurrence out as evidence of a ring.
     two_hop_reach: int = 0
@@ -194,6 +199,7 @@ class RingReport:
             "rings_found": len(self.rings),
             "components": [c.as_dict() for c in self.components],
             "examined": [link.as_dict() for link in self.examined],
+            "focus": self.focus.as_dict() if self.focus is not None else None,
         }
 
     def as_markdown(self) -> str:
@@ -328,6 +334,10 @@ class RingExplorer:
             )[:EXAMINED_DEVICES]
         ]
 
+        focus = _pick_focus(two_hop_links, seed_of)
+        if focus is not None:
+            await self._annotate(focus)
+
         components = _components(edges)
         out: list[Component] = []
         for cards in components:
@@ -345,6 +355,7 @@ class RingExplorer:
             seeds=len(alerts),
             components=out,
             examined=examined,
+            focus=focus,
             generic_profiles_skipped=generic_skipped,
             two_hop_reach=len(two_hop_cards),
             two_hop_customers=len({_customer_of(card) for card in two_hop_cards}),
@@ -444,6 +455,45 @@ class RingExplorer:
 
 
 # ── plain functions ──────────────────────────────────────────────────────────
+
+
+#: The scale a person can read. A fingerprint on four to a dozen cards is a
+#: picture; one on two is noise and one on forty is a fingerprint class.
+FOCUS_MIN_CARDS = 4
+FOCUS_MAX_CARDS = 12
+
+
+def _pick_focus(
+    two_hop_links: Mapping[str, set[str]], seed_of: Mapping[str, set[str]]
+) -> Component | None:
+    """The single fingerprint worth drawing, or None.
+
+    Chosen by how many distinct *customers* it spans rather than how many
+    cards: six cards on one customer's profile is a household and says
+    nothing, while six cards across five customers is the shape everybody
+    opens this screen hoping to see — even when, as here, it sits at two hops
+    and so cannot clear R6.
+
+    Deterministic: ties break on card count, then on the profile id.
+    """
+    best: tuple[int, int, str] | None = None
+    chosen: str | None = None
+    for device, cards in two_hop_links.items():
+        if not FOCUS_MIN_CARDS <= len(cards) <= FOCUS_MAX_CARDS:
+            continue
+        customers = len({_customer_of(card) for card in cards})
+        key = (customers, len(cards), device)
+        if best is None or key > best:
+            best = key
+            chosen = device
+    if chosen is None:
+        return None
+    members = sorted(two_hop_links[chosen])
+    return Component(
+        cards=members,
+        devices=[chosen],
+        seeds=sorted({seed for card in members for seed in seed_of.get(card, ())}),
+    )
 
 
 def _names(values: Sequence[str], limit: int = NAMED_CARDS) -> str:

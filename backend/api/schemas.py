@@ -1556,6 +1556,12 @@ class RingReport(BaseModel):
     components_found: int = 0
     rings_found: int = 0
     components: list[RingComponent] = Field(default_factory=list)
+    #: The one fingerprint worth drawing: the profile spanning the most
+    #: customers at *two* hops. It satisfies the same component test the ring
+    #: gate applies — multi-customer, bounded, with confirmed fraud already on
+    #: file — but at a hop R6 is not defined on, so it is reported here and
+    #: never counted in ``rings_found``.
+    focus: RingComponent | None = None
     #: Every device the sweep looked at. The evidence for the negative result,
     #: and what the console draws when there is no ring to draw.
     examined: list[RingDeviceLink] = Field(default_factory=list)

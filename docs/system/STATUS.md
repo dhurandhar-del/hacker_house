@@ -44,7 +44,7 @@ python -m sentinel validate --no-graph      20/20 valid
 python -m api.contract emit --check         up to date
 cd frontend && npx tsc --noEmit             clean
 cd frontend && npm run build                Compiled successfully
-cd frontend && npm run smoke                26/26 checks passed  (headless Chromium)
+cd frontend && npm run smoke                28/28 checks passed  (headless Chromium)
 python scripts/check_contrast.py --check    every token clears its bar in both themes
 ```
 
@@ -234,20 +234,22 @@ the agent cleared anyway, and the ring that is not there.
 
 **The graph canvas** (F10, previously cut) draws `/api/graph/cases/{id}` as a
 breadth-first ring layout — deterministic, so the same case draws the same
-picture on two screens in a call. **The ring view** draws the real two-hop
-device neighbourhood out of `exploration/rings.json`, because at one hop no
-two seeds share a device at all — there is genuinely nothing to draw, and a
-console that renders a ring anyway is the failure the whole sweep exists to
-avoid. It draws the part that carries the connection: 48 profiles and the 60
-cards sitting on more than one of them, one connected component, with the
-207 single-profile leaves left out because they join nothing. Connectivity is
-measured on what is on screen rather than asserted, and the busiest shared
-cards are named — one card appears on twenty-one separate device fingerprints
-inside a month.
+picture on two screens in a call. **The ring view** has to carry two facts at once. At one hop — the hop R6 is
+defined on — no two of the twenty seeds share a device profile, so the
+headline is the negative finding and stays that way. But widening to two hops
+with the same specificity gate, one fingerprint (`Deff4ac1c3cb9`) carries
+**twelve cards belonging to twelve different customers, seven of which the
+bank has already closed as confirmed fraud, with $73,178 of exposure on those
+closed cases**. That satisfies the same component test the ring gate applies
+and is not a ring, because it is not at one hop — the panel says exactly that.
+The canvas draws it the way the design study draws a ring: the shared profile
+at the centre, its cards around it, each named, the confirmed ones marked.
+Every number comes from `exploration/rings.json`, so the page and
+`explore rings` cannot disagree.
 
 Verified in a real browser: `npm run smoke` drives Chromium through the
 masthead, the queue, a replay advancing, the graph pane's nodes, all five
-tabs, both full-screen views and the drawer — 26 checks, failing on any
+tabs, both full-screen views and the drawer — 28 checks, failing on any
 console error. It runs with the OS forced to dark, because the console is a
 light instrument and following the preference was a defect it caught.
 

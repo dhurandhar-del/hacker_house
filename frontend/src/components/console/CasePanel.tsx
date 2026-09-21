@@ -124,7 +124,7 @@ export function CasePanel({
   };
 
   return (
-    <main className="flex min-w-0 flex-col bg-bg">
+    <main className="flex min-h-0 min-w-0 flex-col bg-bg">
       <header className="shrink-0 border-b border-border px-5 pt-3.5">
         <div className="flex items-start gap-3.5">
           <div className="min-w-0 flex-1">

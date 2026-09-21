@@ -1554,6 +1554,7 @@ export interface RingReport {
   components_found: number;
   rings_found: number;
   components: RingComponent[];
+  focus: RingComponent | null;
   examined: RingDeviceLink[];
   note: string;
 }

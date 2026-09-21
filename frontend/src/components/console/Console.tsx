@@ -265,6 +265,11 @@ export function Console({
           className="grid h-full min-h-0"
           style={{
             gridTemplateColumns: pane ? "252px minmax(0,1fr) 404px" : "252px minmax(0,1fr)",
+            // One row, pinned to the container's height. Left to itself the
+            // implicit row grows to the tallest pane, which pushes the panes
+            // past the viewport and leaves their own overflow rules nothing
+            // to bite on.
+            gridTemplateRows: "minmax(0,1fr)",
           }}
         >
           <QueueRail

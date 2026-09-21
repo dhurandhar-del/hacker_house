@@ -103,32 +103,30 @@ check("monitor renders", (await page.getByText(/Block rate/i).count()) > 0);
 
 await page.getByRole("tab", { name: "Ring" }).click();
 await page.waitForTimeout(1200);
+// The scope closing on the shared profile, and the edges being walked.
+check("ring scope animates", (await page.locator(".z-view svg circle.animate-spin-slow").count()) >= 1);
+check("ring edges are traced", (await page.locator(".z-view svg line.animate-trace").count()) >= 4);
+// The ring screen has to carry two facts at once: the finding is negative,
+// and there is still something worth drawing. Both are asserted, because
+// earlier versions lost one or the other — once by claiming a connectivity
+// the drawing did not have, once by burying the finding in a 118-node mesh.
 check(
-  "ring renders the honest result",
-  (await page.getByText(/No ring on this pack|Undocumented component/).count()) > 0,
+  "ring keeps the negative finding as the headline",
+  (await page.getByText("No ring on this pack").count()) > 0,
 );
-// The sweep boundary travels its dashes rather than rotating: a rotating
-// ellipse tumbles instead of sweeping.
-check("ring sweep boundary", (await page.locator("ellipse.animate-trace").count()) >= 1);
-// The canvas must draw the real neighbourhood, not an empty frame — and the
-// caption must agree with it. An earlier version capped the sample in a way
-// that split the graph in two while still claiming one component.
-const ringNodes = await page.locator("svg g.animate-s-pop circle").count();
-check("ring draws real nodes", ringNodes >= 80, `${ringNodes} nodes`);
-const ringCaption = (await page.locator(".z-view svg text").allTextContents()).join(" ");
+const ringNodes = await page.locator(".z-view svg g.animate-s-pop circle").count();
+check("ring draws the component", ringNodes >= 5 && ringNodes <= 40, `${ringNodes} nodes`);
+const ringText = (await page.locator(".z-view svg text").allTextContents()).join(" ");
+check("ring names the shared profile", /cards · \d+ customers/.test(ringText));
+check("ring names its cards", (ringText.match(/C\d{5}-K\d/g) ?? []).length >= 4);
 check(
-  "ring caption states one component",
-  /one component/.test(ringCaption),
-  ringCaption.slice(0, 80),
-);
-// The busiest shared cards are the finding on this screen; they carry names.
-check(
-  "ring names its hubs",
-  /\d+ profiles/.test(ringCaption) && /C\d{5}-K\d/.test(ringCaption),
+  "ring marks what the bank already confirmed",
+  /confirmed fraud/.test(ringText) || /benchmark seed/.test(ringText),
 );
 check(
-  "ring names the benchmark seeds",
-  (await page.getByText(/benchmark seed/).count()) >= 3,
+  "ring lists its members",
+  (await page.locator(".z-view li").count()) >= 4,
+  `${await page.locator(".z-view li").count()} rows`,
 );
 
 // The monitor's bars: a percentage height inside a flex column resolves to

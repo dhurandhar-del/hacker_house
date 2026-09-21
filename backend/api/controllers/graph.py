@@ -107,6 +107,11 @@ class GraphController(ApiController):
                 for component in raw.get("components") or []
                 if isinstance(component, dict)
             ],
+            focus=(
+                RingComponent.model_validate(raw["focus"])
+                if isinstance(raw.get("focus"), dict)
+                else None
+            ),
             examined=[
                 RingDeviceLink.model_validate(link)
                 for link in raw.get("examined") or []
