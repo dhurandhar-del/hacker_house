@@ -159,15 +159,9 @@ class EpisodeScoper:
     @staticmethod
     def _incriminating(row: TransactionRow) -> bool:
         """Does this transaction carry a signal of its own, or is it just nearby?"""
-        return (
-            row.risk_score >= CNP_RISK_FLOOR
-            or row.device_new == "New"
-            or bool(row.proxy_flag)
-        )
+        return row.risk_score >= CNP_RISK_FLOOR or row.device_new == "New" or bool(row.proxy_flag)
 
-    def _window_rows(
-        self, flagged: TransactionRow, span: timedelta
-    ) -> Iterable[TransactionRow]:
+    def _window_rows(self, flagged: TransactionRow, span: timedelta) -> Iterable[TransactionRow]:
         if self.window is None or flagged.ts is None:
             return ()
         return [

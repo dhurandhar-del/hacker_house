@@ -86,8 +86,10 @@ class InvestigationContext:
     #: Tool names the sweep will run: the mandatory core plus whatever the
     #: planner added to it.
     planned: list[str] = field(default_factory=list)
-    #: What the planner contributed beyond the core, for the trace.
-    planner_added: list[str] = field(default_factory=list)
+    #: The planner's stated reason per detector, and what became of each
+    #: request: `prioritised`, `not_in_plan` or `unknown`. The detector set is
+    #: fixed, so this is where the planner's contribution is visible.
+    planner_notes: list[dict[str, str]] = field(default_factory=list)
     #: Results the later steps need in their own right, rather than only as
     #: postings: the episode scoper reads the window, the simulator reads the
     #: region and device facts.

@@ -201,8 +201,7 @@ class CaseStateBuilder:
         if ring is None:
             return False
         return any(
-            card.customer_id and (card.max_risk or 0.0) >= 0.70
-            for card in ring.connected_cards
+            card.customer_id and (card.max_risk or 0.0) >= 0.70 for card in ring.connected_cards
         )
 
     @staticmethod
@@ -216,9 +215,5 @@ class CaseStateBuilder:
         if history is None:
             return 0
         return len(
-            {
-                case.card_id
-                for case in history.cases
-                if case.confirmed_fraud and case.card_id
-            }
+            {case.card_id for case in history.cases if case.confirmed_fraud and case.card_id}
         )

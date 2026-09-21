@@ -18,6 +18,8 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 
+from pydantic import ValidationError
+
 from sentinel.agents.agents.assessment import AssessmentAgent, DevilsAdvocateAgent
 from sentinel.agents.agents.narration import NarrationAgent
 from sentinel.agents.agents.planner import PlannerAgent
@@ -41,7 +43,7 @@ from sentinel.agents.steps import (
 from sentinel.config.settings import Settings
 from sentinel.domain.alert import Alert
 from sentinel.domain.answer import AnswerFile
-from sentinel.domain.errors import BudgetExceeded, SentinelError
+from sentinel.domain.errors import AnswerInvalid, BudgetExceeded, SentinelError
 from sentinel.evidence.extractor import FeatureExtractor
 from sentinel.evidence.ledger import EvidenceLedger
 from sentinel.evidence.table import EvidenceLikelihoodTable
@@ -80,8 +82,9 @@ class InvestigationOrchestrator(ABC):
     """
 
     @abstractmethod
-    async def run(self, alert: Alert, emitter: EventEmitter | None = None) -> InvestigationResult:
-        ...
+    async def run(
+        self, alert: Alert, emitter: EventEmitter | None = None
+    ) -> InvestigationResult: ...
 
 
 @dataclass
@@ -136,9 +139,7 @@ class SentinelOrchestrator(InvestigationOrchestrator):
             *write,
         )
 
-    async def run(
-        self, alert: Alert, emitter: EventEmitter | None = None
-    ) -> InvestigationResult:
+    async def run(self, alert: Alert, emitter: EventEmitter | None = None) -> InvestigationResult:
         emitter = emitter or NullEmitter()
         ctx = self.build_context(alert, emitter)
 
@@ -170,8 +171,12 @@ class SentinelOrchestrator(InvestigationOrchestrator):
                 number = ctx.counter.next()
                 emitter.emit(
                     "step.started",
-                    {"step": number, "name": step.name, "title": step.title,
-                     "agent": type(step).__name__},
+                    {
+                        "step": number,
+                        "name": step.name,
+                        "title": step.title,
+                        "agent": type(step).__name__,
+                    },
                     step=number,
                 )
                 calls_before = ctx.tools.log.count
@@ -191,19 +196,48 @@ class SentinelOrchestrator(InvestigationOrchestrator):
         except BudgetExceeded as exc:
             emitter.emit(
                 "run.failed",
-                {"code": "budget_exceeded", "message": exc.message,
-                 "step": ctx.counter.current, "recoverable": False},
+                {
+                    "code": "budget_exceeded",
+                    "message": exc.message,
+                    "step": ctx.counter.current,
+                    "recoverable": False,
+                },
             )
             raise
         except SentinelError as exc:
             emitter.emit(
                 "run.failed",
-                {"code": exc.code, "message": exc.message,
-                 "step": ctx.counter.current, "recoverable": False},
+                {
+                    "code": exc.code,
+                    "message": exc.message,
+                    "step": ctx.counter.current,
+                    "recoverable": False,
+                },
             )
             raise
 
-        answer = self.assembler.assemble(ctx)
+        try:
+            answer = self.assembler.assemble(ctx)
+        except ValidationError as exc:
+            # The answer models enforce invariants the steps cannot see, and a
+            # violation here is a `pydantic.ValidationError` — neither a
+            # `BudgetExceeded` nor a `SentinelError`, so it escaped the loop's
+            # except clauses with no `run.failed` and no file. A run that
+            # cannot produce a valid answer must still say so on the stream.
+            message = "; ".join(
+                f"{'.'.join(str(p) for p in err['loc'])}: {err['msg']}" for err in exc.errors()
+            )
+            emitter.emit(
+                "run.failed",
+                {
+                    "code": "answer_invalid",
+                    "message": message,
+                    "step": ctx.counter.current,
+                    "recoverable": False,
+                },
+            )
+            raise AnswerInvalid(message, case_id=alert.alert_id) from exc
+
         emitter.emit("verdict.reached", _verdict_payload(ctx, answer), step=ctx.counter.current)
 
         report = self.validator.validate(answer.model_dump(mode="json"))

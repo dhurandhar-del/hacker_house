@@ -42,16 +42,67 @@ SAR_NARRATIVE_MAX_SENTENCES = 12
 #: Guide.md, Part 2: first and last date of the activity.
 SAR_ACTIVITY_DATE_COUNT = 2
 
-#: A sentence ends at .!? *followed by whitespace or the end of the string*. The
-#: lookahead is the whole point: ``eval/validate.py`` splits on "." alone, so
-#: "Total unauthorized amount: $268.43." reads to it as two sentences and every
-#: narrative that names a dollar figure is miscounted.
-_SENTENCE_END = re.compile(r"[.!?]+(?=\s|$)")
+#: Abbreviations a FinCEN-style narrative actually contains. A full stop after
+#: one of these is not a sentence end, and miscounting one costs the whole
+#: answer file: the SAR model rejects a narrative outside 6-12 sentences, and
+#: "billed in U.S. dollars" reads as two extra sentences without this list.
+_ABBREVIATIONS = (
+    "mr",
+    "mrs",
+    "ms",
+    "dr",
+    "prof",
+    "st",
+    "no",
+    "vs",
+    "approx",
+    "est",
+    "inc",
+    "ltd",
+    "co",
+    "corp",
+    "u.s",
+    "u.k",
+    "e.g",
+    "i.e",
+    "etc",
+    "al",
+)
+
+#: A sentence ends at .!? followed by whitespace and a capital — or by the end
+#: of the string. Two distinct miscounts are excluded:
+#:
+#: - a decimal point, because ``eval/validate.py`` splits on "." alone and reads
+#:   "Total unauthorized amount: $268.43." as two sentences;
+#: - an abbreviation, handled by :func:`count_sentences` rather than here,
+#:   because a negative lookbehind must be fixed-width and these are not.
+_SENTENCE_END = re.compile(r"[.!?]+(?=\s+[\"\u2018\u201c(\[]?[A-Z0-9]|\s*$)")
+
+#: The word immediately before a candidate terminator.
+_TRAILING_WORD = re.compile(r"([A-Za-z.]+)$")
 
 
 def count_sentences(text: str) -> int:
-    """Sentences in a narrative, treating a decimal point as punctuation, not an end."""
-    return sum(1 for part in _SENTENCE_END.split(text) if part.strip())
+    """Sentences in a narrative, as a reader would count them.
+
+    A decimal point is punctuation, and so is the full stop in "U.S." or
+    "Approx.". Both are excluded, because the only consumer of this number
+    rejects a narrative outside a six-to-twelve band and a single abbreviation
+    would otherwise fail an answer that is perfectly well formed.
+    """
+    count = 0
+    trailing = False
+    for match in _SENTENCE_END.finditer(text):
+        head = text[: match.start()]
+        word = _TRAILING_WORD.search(head)
+        if word is not None and word.group(1).rstrip(".").lower() in _ABBREVIATIONS:
+            continue
+        count += 1
+        trailing = not text[match.end() :].strip()
+    # Prose that ends without a terminator is still a sentence.
+    if text.strip() and not trailing:
+        count += 1
+    return count
 
 
 class Evidence(BaseModel):
@@ -249,9 +300,7 @@ class Case(BaseModel):
         """Where the episode started has to be a member of the episode."""
         first = self.first_suspicious_txn_id
         if first and first not in self.affected_txn_ids:
-            raise ValueError(
-                f"first_suspicious_txn_id '{first}' is not listed in affected_txn_ids"
-            )
+            raise ValueError(f"first_suspicious_txn_id '{first}' is not listed in affected_txn_ids")
         return self
 
     @model_validator(mode="after")

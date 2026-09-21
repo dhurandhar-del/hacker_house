@@ -138,9 +138,7 @@ def test_out_of_region_use_takes_the_region_from_its_first_appearance():
         ),
         region=RegionNovelty(first_seen_in_region="2016-12-09 00:00:00"),
     )
-    flagged = TransactionRow.model_validate(
-        row(TXN, "2016-12-10 13:01:21", 49.0, addr1="444.0")
-    )
+    flagged = TransactionRow.model_validate(row(TXN, "2016-12-10 13:01:21", 49.0, addr1="444.0"))
     scope = scoper.scope(flagged, Pattern.OUT_OF_REGION_USE, Verdict.FRAUD, region_code="444.0")
     assert set(scope.affected_txn_ids) == {TXN, "same_region"}
     assert "home" not in scope.affected_txn_ids
@@ -307,7 +305,9 @@ def test_r10_counts_distinct_cards_not_cases(table):
         }
     )
     state = CaseStateBuilder(EvidenceLedger(table)).build(
-        facts=ScopedFacts(history=history), trigger_type=TriggerType.CUSTOMER_REPORT, exposure_usd=0.0
+        facts=ScopedFacts(history=history),
+        trigger_type=TriggerType.CUSTOMER_REPORT,
+        exposure_usd=0.0,
     )
     assert state.cards_with_confirmed_fraud == 1
 
@@ -376,9 +376,9 @@ def test_step_up_passes_on_a_device_the_card_knows():
             "prior_txns_this_device_on_card": 14,
         }
     )
-    out = EvidenceSimulator(device=device, refs={"device_novelty": "query:device_novelty(txn_id=1)"}).simulate(
-        RequestType.STEP_UP_AUTH
-    )
+    out = EvidenceSimulator(
+        device=device, refs={"device_novelty": "query:device_novelty(txn_id=1)"}
+    ).simulate(RequestType.STEP_UP_AUTH)
     assert out.branch is CustomerResponse.STEP_UP_PASSED
     assert out.log_lr < 0
 

@@ -57,9 +57,7 @@ class SarPolicy:
         if strongly_suspected and triggers:
             return SarDecision(
                 file=True,
-                reason="3a: fraud confirmed or strongly suspected and "
-                + "; ".join(triggers)
-                + ".",
+                reason="3a: fraud confirmed or strongly suspected and " + "; ".join(triggers) + ".",
                 triggers=tuple(triggers),
             )
         return SarDecision(

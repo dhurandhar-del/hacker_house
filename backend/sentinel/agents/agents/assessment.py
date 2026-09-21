@@ -123,7 +123,10 @@ class DevilsAdvocateAgent(LlmAgent[ExonerationOutput]):
 
     def render(self, ctx: InvestigationContext) -> str:
         postings = bullet(
-            [f"{p.feature}: {p.claim} (LR {p.lr:.2f}, cited as {p.ref})" for p in ctx.ledger.postings]
+            [
+                f"{p.feature}: {p.claim} (LR {p.lr:.2f}, cited as {p.ref})"
+                for p in ctx.ledger.postings
+            ]
         )
         fitted = ", ".join(sorted(ctx.extractor.table.feature_names))
         return (
@@ -142,9 +145,7 @@ class DevilsAdvocateAgent(LlmAgent[ExonerationOutput]):
         )
 
     @staticmethod
-    def to_postings(
-        output: ExonerationOutput, ctx: InvestigationContext
-    ) -> list[PostingRequest]:
+    def to_postings(output: ExonerationOutput, ctx: InvestigationContext) -> list[PostingRequest]:
         """Keep only what the fitted table knows and the trace already cites.
 
         The defence is the one agent whose output becomes evidence, so it is the

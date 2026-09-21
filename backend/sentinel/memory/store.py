@@ -237,9 +237,7 @@ class CaseMemoryStore:
         try:
             return await self.embeddings.embed_one(summary)
         except Exception:  # a missing vector must never lose the case
-            logger.warning(
-                "case summary could not be embedded; writing without emb", exc_info=True
-            )
+            logger.warning("case summary could not be embedded; writing without emb", exc_info=True)
             return None
 
 

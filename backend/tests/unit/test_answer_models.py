@@ -5,6 +5,7 @@ The strongest test here is `test_golden_fixture_round_trips`: the real
 graph, must parse and re-serialise to an identical dict. If that breaks, the
 models have drifted from the thing the benchmark actually grades.
 """
+
 from __future__ import annotations
 
 import json
@@ -53,23 +54,39 @@ STAGED_ALERTS = ROOT / "data" / "staging" / "alerts.csv"
 # data/staging/transactions.csv.gz. Inlined so the lag invariant is testable
 # without reading a 30 MB gzip in a unit test.
 FLAGGED_TXN_TS = {
-    "HHG-001": "2016-12-04 19:55:28", "HHG-002": "2016-11-22 17:27:07",
-    "HHG-003": "2016-12-10 13:01:21", "HHG-004": "2016-12-29 01:53:54",
-    "HHG-005": "2016-12-07 21:38:37", "HHG-006": "2016-11-21 20:30:00",
-    "HHG-007": "2016-12-05 00:46:14", "HHG-008": "2016-12-19 22:08:56",
-    "HHG-009": "2016-12-28 12:10:53", "HHG-010": "2016-12-02 15:18:27",
-    "HHG-011": "2016-12-29 03:27:44", "HHG-012": "2016-12-18 04:00:31",
-    "HHG-013": "2016-12-09 02:39:29", "HHG-014": "2016-11-22 16:11:00",
-    "HHG-015": "2016-11-17 14:03:36", "HHG-016": "2016-12-11 22:39:08",
-    "HHG-017": "2016-11-11 23:46:24", "HHG-018": "2016-11-27 13:41:26",
-    "HHG-019": "2016-12-01 17:28:53", "HHG-020": "2016-12-03 06:04:26",
+    "HHG-001": "2016-12-04 19:55:28",
+    "HHG-002": "2016-11-22 17:27:07",
+    "HHG-003": "2016-12-10 13:01:21",
+    "HHG-004": "2016-12-29 01:53:54",
+    "HHG-005": "2016-12-07 21:38:37",
+    "HHG-006": "2016-11-21 20:30:00",
+    "HHG-007": "2016-12-05 00:46:14",
+    "HHG-008": "2016-12-19 22:08:56",
+    "HHG-009": "2016-12-28 12:10:53",
+    "HHG-010": "2016-12-02 15:18:27",
+    "HHG-011": "2016-12-29 03:27:44",
+    "HHG-012": "2016-12-18 04:00:31",
+    "HHG-013": "2016-12-09 02:39:29",
+    "HHG-014": "2016-11-22 16:11:00",
+    "HHG-015": "2016-11-17 14:03:36",
+    "HHG-016": "2016-12-11 22:39:08",
+    "HHG-017": "2016-11-11 23:46:24",
+    "HHG-018": "2016-11-27 13:41:26",
+    "HHG-019": "2016-12-01 17:28:53",
+    "HHG-020": "2016-12-03 06:04:26",
 }
 
 # The real Transaction.risk_score for the nine alerts whose alert-level score is
 # the -1 sentinel. Measured from the same file.
 REAL_SCORE_WHERE_ALERT_HAS_NONE = {
-    "HHG-003": 0.40, "HHG-004": 0.34, "HHG-006": 0.25, "HHG-008": 0.38,
-    "HHG-009": 0.28, "HHG-011": 0.39, "HHG-014": 0.05, "HHG-016": 0.37,
+    "HHG-003": 0.40,
+    "HHG-004": 0.34,
+    "HHG-006": 0.25,
+    "HHG-008": 0.38,
+    "HHG-009": 0.28,
+    "HHG-011": 0.39,
+    "HHG-014": 0.05,
+    "HHG-016": 0.37,
     "HHG-018": 0.48,
 }
 
@@ -117,8 +134,14 @@ def a_case(**overrides: object) -> Case:
     return Case(**(base | overrides))  # type: ignore[arg-type]
 
 
-def a_recommendation(action: Action = Action.CREATE_CASE, **overrides: object) -> ActionRecommendation:
-    base: dict[str, object] = {"action": action, "route": Route.AUTO, "reason": "3a: a case is opened"}
+def a_recommendation(
+    action: Action = Action.CREATE_CASE, **overrides: object
+) -> ActionRecommendation:
+    base: dict[str, object] = {
+        "action": action,
+        "route": Route.AUTO,
+        "reason": "3a: a case is opened",
+    }
     return ActionRecommendation(**(base | overrides))  # type: ignore[arg-type]
 
 
@@ -332,9 +355,7 @@ def test_legitimate_is_clean_accepts_an_empty_episode() -> None:
 
 def test_legitimate_is_clean_rejects_affected_transactions() -> None:
     with pytest.raises(ValidationError, match="affected_txn_ids must be empty"):
-        an_answer(
-            case=a_case(verdict=Verdict.LEGITIMATE, status=CaseStatus.CLOSED_LEGITIMATE)
-        )
+        an_answer(case=a_case(verdict=Verdict.LEGITIMATE, status=CaseStatus.CLOSED_LEGITIMATE))
 
 
 def test_legitimate_is_clean_rejects_non_zero_exposure() -> None:
@@ -517,11 +538,7 @@ def test_nine_alerts_carry_no_score_and_none_of_them_is_a_number(alerts: list[Al
 
 
 def test_every_scoreless_alert_is_a_report_or_a_request(alerts: list[Alert]) -> None:
-    assert all(
-        a.trigger_type is not TriggerType.RISK_SCORE
-        for a in alerts
-        if a.risk_score is None
-    )
+    assert all(a.trigger_type is not TriggerType.RISK_SCORE for a in alerts if a.risk_score is None)
 
 
 def test_the_staged_alerts_file_uses_the_minus_one_sentinel(alerts: list[Alert]) -> None:

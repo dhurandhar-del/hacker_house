@@ -189,9 +189,7 @@ async def test_the_region_is_not_hot_against_a_matched_baseline(tools):
 
 
 async def test_the_ring_gate_is_what_stops_a_phantom_ring(tools):
-    gated = await call(
-        tools, "ring_expand", card_id=CARD, center=TS, days=30, max_device_cards=20
-    )
+    gated = await call(tools, "ring_expand", card_id=CARD, center=TS, days=30, max_device_cards=20)
     assert gated.devices_total == 5
     assert gated.devices_specific_enough == 2
     assert len(gated.connected_cards) == 11

@@ -93,6 +93,4 @@ class CollectingEmitter(EventEmitter):
     @property
     def trajectory(self) -> list[float]:
         """The probability after each posting — the sparkline the UI draws."""
-        return [
-            float(event.payload["p_after"]) for event in self.of_type("evidence.posted")
-        ]
+        return [float(event.payload["p_after"]) for event in self.of_type("evidence.posted")]

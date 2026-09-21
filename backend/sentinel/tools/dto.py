@@ -589,7 +589,5 @@ class CardAmountStats(GraphModel):
         if self.n_prior < 2:
             return None
         mean = self.sum_amt / self.n_prior
-        variance = max(
-            (self.sum_amt_sq - self.n_prior * mean * mean) / (self.n_prior - 1), 0.0
-        )
+        variance = max((self.sum_amt_sq - self.n_prior * mean * mean) / (self.n_prior - 1), 0.0)
         return math.sqrt(variance)

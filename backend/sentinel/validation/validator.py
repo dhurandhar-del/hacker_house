@@ -78,9 +78,7 @@ class ValidationReport:
         raise AnswerInvalid(
             f"answer{subject} failed validation with {len(self.errors)} error(s)",
             case_id=case_id,
-            errors=[
-                {"code": f.code, "path": f.path, "message": f.message} for f in self.errors
-            ],
+            errors=[{"code": f.code, "path": f.path, "message": f.message} for f in self.errors],
         )
 
 

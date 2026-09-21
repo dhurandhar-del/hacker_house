@@ -290,7 +290,9 @@ class ToolRegistry:
             entity_ids = tool.entity_ids(args)
         except (ValueError, TypeError) as exc:
             return self._log.record(
-                ToolResult.failed(name, EvidenceRef.query(name, dict(args)), f"bad arguments: {exc}")
+                ToolResult.failed(
+                    name, EvidenceRef.query(name, dict(args)), f"bad arguments: {exc}"
+                )
             )
 
         started = perf_counter()
@@ -333,9 +335,7 @@ class ToolRegistry:
             )
         )
 
-    async def call_many(
-        self, plan: Sequence[ToolCall | Mapping[str, Any]]
-    ) -> list[ToolResult]:
+    async def call_many(self, plan: Sequence[ToolCall | Mapping[str, Any]]) -> list[ToolResult]:
         """Run independent calls concurrently; results come back in plan order.
 
         Names are validated up front so one typo cannot leave half a batch in

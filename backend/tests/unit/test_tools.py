@@ -54,13 +54,26 @@ def test_every_investigative_query_is_registered():
     reg, _ = registry()
     expected = {
         # the sixteen from v1
-        "txn_detail", "card_baseline", "card_window", "card_testing_probe",
-        "region_novelty", "amount_band_probe", "device_novelty", "device_neighbors",
-        "region_cluster", "email_cluster", "ring_expand", "recurring_charge_probe",
-        "velocity_probe", "customer_case_history", "similar_prior_cases",
+        "txn_detail",
+        "card_baseline",
+        "card_window",
+        "card_testing_probe",
+        "region_novelty",
+        "amount_band_probe",
+        "device_novelty",
+        "device_neighbors",
+        "region_cluster",
+        "email_cluster",
+        "ring_expand",
+        "recurring_charge_probe",
+        "velocity_probe",
+        "customer_case_history",
+        "similar_prior_cases",
         "case_memory_for_card",
         # v2: the three fitted features that had no tool behind them
-        "txn_sequence_context", "product_novelty", "card_amount_stats",
+        "txn_sequence_context",
+        "product_novelty",
+        "card_amount_stats",
     }
     assert set(reg.names()) == expected
 
@@ -92,9 +105,7 @@ def test_every_tool_in_the_catalogue_has_a_question_it_answers():
 
 def test_planner_names_are_translated_to_gsql_parameter_names():
     reg, _ = registry()
-    wire = reg.get("region_novelty").build_params(
-        {"card_id": CARD, "region": REGION, "as_of": TS}
-    )
+    wire = reg.get("region_novelty").build_params({"card_id": CARD, "region": REGION, "as_of": TS})
     # The planner says card_id; GSQL declares c_in.
     assert wire == {"c_in": CARD, "region": REGION, "as_of": TS}
 
@@ -173,7 +184,9 @@ async def test_a_graph_failure_is_recorded_rather_than_raised():
 async def test_each_investigation_gets_its_own_log():
     # v1's GraphTools made its own QueryLog by default, so twenty concurrent
     # cases would have merged into one trace. There is no default here.
-    repo = FakeGraphRepository().seed_query("card_baseline", {"card": [], "customer": [], "sibling_cards": []})
+    repo = FakeGraphRepository().seed_query(
+        "card_baseline", {"card": [], "customer": [], "sibling_cards": []}
+    )
     first = ToolRegistry(repo, QueryLog())
     second = ToolRegistry(repo, QueryLog())
     await first.call("card_baseline", {"card_id": CARD})
@@ -182,7 +195,9 @@ async def test_each_investigation_gets_its_own_log():
 
 
 async def test_the_log_totals_feed_the_answer_file():
-    repo = FakeGraphRepository().seed_query("card_baseline", {"card": [], "customer": [], "sibling_cards": []})
+    repo = FakeGraphRepository().seed_query(
+        "card_baseline", {"card": [], "customer": [], "sibling_cards": []}
+    )
     reg, _ = registry(repo)
     await reg.call("card_baseline", {"card_id": CARD})
     await reg.call("card_baseline", {"card_id": CARD})
@@ -224,3 +239,47 @@ async def test_card_baseline_separates_the_seed_card_from_its_siblings():
     assert [card.card_id for card in result.data.other_cards] == ["C08623-K1"]
     assert result.data.n_other_cards == 1
     assert len(result.data.sibling_cards) == 2, "the raw list still carries the seed card"
+
+
+# ── the simulator's three-way device branch ──────────────────────────────────
+
+
+def test_a_step_up_invents_nothing_when_there_is_no_identity_record():
+    """Seven of the twenty alerts carry no device at all.
+
+    The regression this pins: `_step_up` read `prior_txns_this_device_on_card
+    == 0` as "unrecognised device" and posted +1.1 log-odds for a failed
+    challenge. On a case already near 0.84 that carried it past `stop_high` and
+    flipped the verdict to fraud, on the strength of the only device claim in
+    the evidence list — one the graph never supported.
+    """
+    from sentinel.domain.enums import CustomerResponse, RequestType
+    from sentinel.simulation.simulator import EvidenceSimulator
+    from sentinel.tools.dto import DeviceNovelty, TxnFlagsRow
+
+    blind = DeviceNovelty(
+        flags=TxnFlagsRow(txn_id="T1", device_key=""), prior_txns_this_device_on_card=0
+    )
+    assert blind.observable is False
+    response = EvidenceSimulator(device=blind).simulate(RequestType.STEP_UP_AUTH)
+    assert response.log_lr == 0.0
+    assert response.branch is CustomerResponse.NO_REPLY
+    assert "no identity record" in response.claim.lower()
+    assert all(basis for basis in response.assumption_basis), "no empty citations"
+
+
+def test_a_step_up_still_discriminates_when_the_device_is_observable():
+    from sentinel.domain.enums import CustomerResponse, RequestType
+    from sentinel.simulation.simulator import EvidenceSimulator
+    from sentinel.tools.dto import DeviceNovelty, TxnFlagsRow
+
+    known = DeviceNovelty(
+        flags=TxnFlagsRow(txn_id="T1", device_key="d-1"), prior_txns_this_device_on_card=12
+    )
+    unknown = DeviceNovelty(
+        flags=TxnFlagsRow(txn_id="T2", device_key="d-2"), prior_txns_this_device_on_card=0
+    )
+    passed = EvidenceSimulator(device=known).simulate(RequestType.STEP_UP_AUTH)
+    failed = EvidenceSimulator(device=unknown).simulate(RequestType.STEP_UP_AUTH)
+    assert passed.branch is CustomerResponse.STEP_UP_PASSED and passed.log_lr < 0
+    assert failed.branch is CustomerResponse.STEP_UP_FAILED and failed.log_lr > 0

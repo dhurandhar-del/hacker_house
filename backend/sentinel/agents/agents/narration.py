@@ -93,9 +93,13 @@ class NarrationAgent(LlmAgent[NarrationOutput]):
         and the file is quarantined, which is the correct outcome: an empty SAR
         narrative would score zero anyway and a fabricated one is worse.
         """
-        changed = "nothing" if ctx.response is None else (
-            f"The cardholder's response ({ctx.response.branch.value}) moved the probability "
-            f"to {ctx.ledger.p:.2f}, and the recommendation was recomputed under policy."
+        changed = (
+            "nothing"
+            if ctx.response is None
+            else (
+                f"The cardholder's response ({ctx.response.branch.value}) moved the probability "
+                f"to {ctx.ledger.p:.2f}, and the recommendation was recomputed under policy."
+            )
         )
         return NarrationOutput(
             sar_narrative="",

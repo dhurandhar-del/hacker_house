@@ -89,7 +89,9 @@ class TokenManager:
 
         url = f"{self._settings.restpp_base}/requesttoken"
         try:
-            response = await self._http.post(url, json=body, timeout=self._settings.tg_query_timeout_s)
+            response = await self._http.post(
+                url, json=body, timeout=self._settings.tg_query_timeout_s
+            )
         except httpx.TransportError as exc:
             raise GraphUnavailable(f"could not reach {url}: {exc}", url=url) from exc
 

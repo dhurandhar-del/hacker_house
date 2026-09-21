@@ -98,7 +98,9 @@ class BatchReport:
 
     @property
     def block_rate(self) -> float:
-        return self._rate(lambda a: any(r.action.value.startswith("BLOCK_") for r in a.next_best_actions.final))
+        return self._rate(
+            lambda a: any(r.action.value.startswith("BLOCK_") for r in a.next_best_actions.final)
+        )
 
     @property
     def sar_rate(self) -> float:
@@ -241,7 +243,9 @@ class CaseRunner:
         started = time.perf_counter()
         outcomes: list[CaseOutcome] = []
         for index, alert in enumerate(ordered, start=1):
-            logger.info("[%d/%d] %s opened %s", index, len(ordered), alert.alert_id, alert.opened_at)
+            logger.info(
+                "[%d/%d] %s opened %s", index, len(ordered), alert.alert_id, alert.opened_at
+            )
             outcomes.append(await self.run_one(alert))
         report = BatchReport(
             run_id=self.run_id,

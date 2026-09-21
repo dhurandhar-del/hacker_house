@@ -12,6 +12,7 @@ graded number or a policy decision is computed.
 from __future__ import annotations
 
 import logging
+import re
 from abc import ABC, abstractmethod
 from typing import ClassVar
 
@@ -22,6 +23,7 @@ from sentinel.agents.assembler import AnswerAssembler
 from sentinel.agents.context import InvestigationContext
 from sentinel.agents.episode import EpisodeScoper
 from sentinel.agents.state_builder import CaseStateBuilder, ScopedFacts
+from sentinel.domain.answer import SAR_NARRATIVE_MAX_SENTENCES, count_sentences
 from sentinel.domain.enums import Pattern, RequestType
 from sentinel.domain.errors import BudgetExceeded, SentinelError, VertexNotFound
 from sentinel.memory.store import CaseMemoryStore, CaseWriteRequest, is_closed_case
@@ -109,25 +111,18 @@ class PlanStep(InvestigationStep):
         self._planner = planner
 
     async def run(self, ctx: InvestigationContext) -> None:
-        """The planner ADDS to a mandatory core; it does not replace it.
+        """The planner orders a fixed plan and says why. See PlannerAgent.
 
-        Measured on HHG-003 against the live model: allowed to choose freely it
-        picked 6 detectors instead of 11, and the five it dropped were the
-        exonerating ones — the amount band, the card's own amount distribution,
-        the recurring-charge probe. The probability came out 0.74 instead of
-        0.36 on identical facts, while the model's own summary said the evidence
-        did not fit a fraud pattern.
-
-        That is the failure mode this benchmark punishes hardest, and it is
-        structural rather than a prompt problem: a detector that would exonerate
-        does not look relevant when a customer has just disputed a charge. So the
-        core sweep is not the planner's to skip.
+        It neither chooses nor extends the detector set. Both were tried
+        against the live model and both were measured: choosing freely, it
+        dropped the five exonerating detectors and returned p = 0.74 instead of
+        0.36 on identical facts; adding to a mandatory core, it added a
+        different set on each of four identical runs and returned 0.3569,
+        0.3577 or 0.5025.
         """
-        core = list(PlannerAgent.static_plan(ctx))
         output = await self._planner.run(ctx)
-        extra = [call.name for call in PlannerAgent.usable(output, ctx) if call.name not in core]
-        ctx.planned = core + extra
-        ctx.planner_added = extra
+        ctx.planned = PlannerAgent.order(output, ctx)
+        ctx.planner_notes = PlannerAgent.rationale(output, ctx)
 
 
 # ── 3. sweep ─────────────────────────────────────────────────────────────────
@@ -432,9 +427,20 @@ class RequestEvidenceStep(InvestigationStep):
         # "before I asked" and the ledger is about to move.
         ctx.pre_request = ctx.ledger.snapshot()
 
+        # A step-up challenge only tells you something when there is a device to
+        # challenge. Seven of the twenty alerts carry no identity record at all,
+        # and asking for a step-up there produces a response that can only be
+        # "we could not evaluate it" — so ask the cardholder instead, which on
+        # those cases is the question that can actually move the number.
+        device_observable = ctx.device_novelty is not None and ctx.device_novelty.observable
         request_type = (
             RequestType.STEP_UP_AUTH
-            if ctx.txn is not None and ctx.txn.channel == "online" and ctx.ledger.p >= 0.5
+            if (
+                ctx.txn is not None
+                and ctx.txn.channel == "online"
+                and device_observable
+                and ctx.ledger.p >= 0.5
+            )
             else RequestType.CUSTOMER_VALIDATION
         )
         simulator = EvidenceSimulator(
@@ -524,7 +530,8 @@ class DecideStep(InvestigationStep):
         initial = self._engine.evaluate(before)
         ctx.initial = initial.recommendations
         ctx.emitter.emit(
-            "policy.evaluated", _policy_payload(ctx, before, initial, "initial"),
+            "policy.evaluated",
+            _policy_payload(ctx, before, initial, "initial"),
             step=ctx.counter.current,
         )
 
@@ -545,7 +552,8 @@ class DecideStep(InvestigationStep):
         ctx.sar_reason = final.sar.reason
         ctx.gates_fired = [gate.as_dict() for gate in final.gates if gate.fired]
         ctx.emitter.emit(
-            "policy.evaluated", _policy_payload(ctx, after, final, "final"),
+            "policy.evaluated",
+            _policy_payload(ctx, after, final, "final"),
             step=ctx.counter.current,
         )
         _record_rules(ctx)
@@ -565,7 +573,7 @@ class NarrateStep(InvestigationStep):
 
     async def run(self, ctx: InvestigationContext) -> None:
         output = await self._narrator.run(ctx)
-        ctx.narration.sar_narrative = output.sar_narrative if ctx.sar_file else ""
+        ctx.narration.sar_narrative = _fit_narrative(output.sar_narrative) if ctx.sar_file else ""
         ctx.narration.what_changed = output.what_changed or "nothing"
         if not ctx.narration.stop_reason:
             ctx.narration.stop_reason = output.stop_reason
@@ -710,6 +718,45 @@ def _policy_payload(
         "sar": {"file": outcome.sar.file, "reason": outcome.sar.reason},
         "stop": {"should_stop": ctx.stop_before_request, "reason": ctx.narration.stop_reason},
     }
+
+
+def _fit_narrative(narrative: str) -> str:
+    """Trim a SAR narrative into the six-to-twelve band Guide.md requires.
+
+    Nothing else in the system lets free-form prose fail a file, and this is
+    the one field where it could: ``SarReport`` rejects a narrative outside the
+    band, that rejection is a ``pydantic.ValidationError`` rather than a
+    ``SentinelError``, and it is raised in the assembler *after* the
+    orchestrator's except clauses — so one sentence too many produced no
+    ``cases/<id>.json`` at all, and zero for every part of the case rather than
+    just the SAR.
+
+    Over-long is trimmed at a sentence boundary, which loses the least
+    important sentences because a FinCEN narrative puts the facts first.
+    Too-short is left alone: padding a regulatory filing with invented sentences
+    is the one repair worse than the failure, so the answer is quarantined with
+    a finding a human can read.
+    """
+    text = narrative.strip()
+    if not text or count_sentences(text) <= SAR_NARRATIVE_MAX_SENTENCES:
+        return text
+    kept: list[str] = []
+    for sentence in _SENTENCES.findall(text):
+        kept.append(sentence.strip())
+        if count_sentences(" ".join(kept)) >= SAR_NARRATIVE_MAX_SENTENCES:
+            break
+    trimmed = " ".join(part for part in kept if part)
+    logger.warning(
+        "SAR narrative ran to %d sentences; trimmed to %d",
+        count_sentences(text),
+        count_sentences(trimmed),
+    )
+    return trimmed
+
+
+#: Greedy split on the same boundary :func:`count_sentences` counts, so trimming
+#: and counting can never disagree about where a sentence ends.
+_SENTENCES = re.compile(r"[^.!?]*[.!?]+(?=\s+[\"\u2018\u201c(\[]?[A-Z0-9]|\s*$)|[^.!?]+$")
 
 
 def _record_rules(ctx: InvestigationContext) -> None:

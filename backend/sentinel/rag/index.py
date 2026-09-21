@@ -109,7 +109,9 @@ class VectorIndex:
 
     # ── querying ─────────────────────────────────────────────────────────────
 
-    def search(self, vector: Sequence[float], k: int = 50, kind: str | None = None) -> list[ScoredId]:
+    def search(
+        self, vector: Sequence[float], k: int = 50, kind: str | None = None
+    ) -> list[ScoredId]:
         """Top ``k`` by cosine, optionally restricted to one kind."""
         if not self.size or not vector:
             return []
@@ -192,7 +194,9 @@ class VectorIndex:
         )
         logger.info("vector index cached to %s (%d rows)", path, self.size)
 
-    def load(self, path: Path, *, expect_rows: int | None = None, expect_dims: int | None = None) -> bool:
+    def load(
+        self, path: Path, *, expect_rows: int | None = None, expect_dims: int | None = None
+    ) -> bool:
         """Warm from the cache. Returns False when it is absent or stale."""
         if not path.exists():
             return False
@@ -202,7 +206,7 @@ class VectorIndex:
             logger.warning("vector cache %s unreadable (%s); re-reading the graph", path, exc)
             return False
         matrix = np.asarray(data["matrix"], dtype=np.float32)
-        rows, dims = (matrix.shape if matrix.ndim == 2 else (0, 0))
+        rows, dims = matrix.shape if matrix.ndim == 2 else (0, 0)
         if expect_rows is not None and rows != expect_rows:
             logger.info("vector cache holds %d rows, graph has %d; re-reading", rows, expect_rows)
             return False
@@ -221,7 +225,11 @@ class VectorIndex:
                 meta=dict(meta) if isinstance(meta, dict) else {},
             )
             for doc_id, kind, title, text, meta in zip(
-                data["ids"], data["kinds"], data["titles"], data["texts"], data["metas"],
+                data["ids"],
+                data["kinds"],
+                data["titles"],
+                data["texts"],
+                data["metas"],
                 strict=True,
             )
         ]

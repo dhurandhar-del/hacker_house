@@ -151,9 +151,7 @@ class TriggerContext:
             customer_already_denied=alert.trigger_type is TriggerType.CUSTOMER_REPORT,
             model_score_at_alert=alert.risk_score,
             analyst_hint=(
-                alert.trigger_text
-                if alert.trigger_type is TriggerType.ANALYST_REQUEST
-                else ""
+                alert.trigger_text if alert.trigger_type is TriggerType.ANALYST_REQUEST else ""
             ),
         )
 
@@ -211,6 +209,4 @@ class CasePackLoader:
             value = row.get(column)
             if value:
                 return value
-        raise KeyError(
-            f"{self._path}: no alert id column; expected one of {self._ID_COLUMNS}"
-        )
+        raise KeyError(f"{self._path}: no alert id column; expected one of {self._ID_COLUMNS}")

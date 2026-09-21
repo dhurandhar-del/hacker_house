@@ -40,15 +40,33 @@ if TYPE_CHECKING:
 
 #: 9 top-level fields.
 TOP_LEVEL_FIELDS: tuple[str, ...] = (
-    "case_id", "case", "evidence_requests", "next_best_actions", "sar",
-    "stop_reason", "tool_calls", "tokens", "latency_s",
+    "case_id",
+    "case",
+    "evidence_requests",
+    "next_best_actions",
+    "sar",
+    "stop_reason",
+    "tool_calls",
+    "tokens",
+    "latency_s",
 )
 #: 15 fields in ``case``.
 CASE_FIELDS: tuple[str, ...] = (
-    "status", "verdict", "fraud_probability", "pattern", "pattern_description",
-    "affected_txn_ids", "first_suspicious_txn_id", "connected_card_ids",
-    "connected_device_profiles", "exposure_usd", "evidence", "similar_prior_cases",
-    "summary", "written_to_graph", "graph_case_id",
+    "status",
+    "verdict",
+    "fraud_probability",
+    "pattern",
+    "pattern_description",
+    "affected_txn_ids",
+    "first_suspicious_txn_id",
+    "connected_card_ids",
+    "connected_device_profiles",
+    "exposure_usd",
+    "evidence",
+    "similar_prior_cases",
+    "summary",
+    "written_to_graph",
+    "graph_case_id",
 )
 #: 4 fields in each ``case.evidence[]``.
 EVIDENCE_FIELDS: tuple[str, ...] = ("claim", "source", "ref", "entity_ids")
@@ -58,7 +76,12 @@ REQUEST_FIELDS: tuple[str, ...] = ("type", "asked_after_step", "assumed_response
 ACTIONS_FIELDS: tuple[str, ...] = ("initial", "final", "what_changed")
 #: 6 fields in ``sar``.
 SAR_FIELDS: tuple[str, ...] = (
-    "file", "reason", "narrative", "subjects", "total_amount_usd", "activity_dates",
+    "file",
+    "reason",
+    "narrative",
+    "subjects",
+    "total_amount_usd",
+    "activity_dates",
 )
 #: 3 fields in each ``next_best_actions.*[]``.
 RECOMMENDATION_FIELDS: tuple[str, ...] = ("action", "route", "reason")
@@ -170,22 +193,31 @@ class ShapeRule(ValidationRule):
             report.add_error("empty_field", "case_id", "case_id is required")
         elif not _CASE_ID.match(str(case_id)):
             report.add_warning(
-                "unexpected_case_id", "case_id",
+                "unexpected_case_id",
+                "case_id",
                 f"case_id '{case_id}' is not of the form HHG-NNN used by case_pack.csv",
             )
 
     def _check_run_metrics(self, answer: Mapping[str, Any], report: ValidationReport) -> None:
         if not nonempty_str(answer.get("stop_reason")):
             report.add_error(
-                "empty_field", "stop_reason", "stop_reason is required: why the investigation ended here"
+                "empty_field",
+                "stop_reason",
+                "stop_reason is required: why the investigation ended here",
             )
         for name in ("tool_calls", "tokens"):
             value = answer.get(name)
             if not isinstance(value, int) or isinstance(value, bool) or value < 0:
-                report.add_error("wrong_type", name, f"{name} must be a non-negative integer, got {value!r}")
+                report.add_error(
+                    "wrong_type", name, f"{name} must be a non-negative integer, got {value!r}"
+                )
         latency = answer.get("latency_s")
         if not is_number(latency) or float(str(latency)) < 0:
-            report.add_error("wrong_type", "latency_s", f"latency_s must be a non-negative number, got {latency!r}")
+            report.add_error(
+                "wrong_type",
+                "latency_s",
+                f"latency_s must be a non-negative number, got {latency!r}",
+            )
 
     def _check_case(self, case: Mapping[str, Any], report: ValidationReport) -> None:
         for name in CASE_FIELDS:
@@ -199,36 +231,49 @@ class ShapeRule(ValidationRule):
         probability = case.get("fraud_probability")
         if not is_number(probability) or not 0.0 <= float(probability) <= 1.0:  # type: ignore[arg-type]
             report.add_error(
-                "out_of_range", "case.fraud_probability",
+                "out_of_range",
+                "case.fraud_probability",
                 f"fraud_probability {probability!r} is not a number in 0..1",
             )
 
         description = case.get("pattern_description")
         if case.get("pattern") == Pattern.UNDOCUMENTED.value and not nonempty_str(description):
             report.add_error(
-                "empty_field", "case.pattern_description",
+                "empty_field",
+                "case.pattern_description",
                 "pattern is 'undocumented' but pattern_description is empty",
             )
         if case.get("pattern") != Pattern.UNDOCUMENTED.value and nonempty_str(description):
             report.add_warning(
-                "unexpected_value", "case.pattern_description",
+                "unexpected_value",
+                "case.pattern_description",
                 "pattern_description is set but pattern is not 'undocumented'",
             )
 
-        for name in ("affected_txn_ids", "connected_card_ids", "connected_device_profiles",
-                     "similar_prior_cases"):
+        for name in (
+            "affected_txn_ids",
+            "connected_card_ids",
+            "connected_device_profiles",
+            "similar_prior_cases",
+        ):
             if name in case and not is_str_list(case.get(name)):
                 report.add_error("wrong_type", f"case.{name}", f"{name} must be a list of strings")
         for name in ("first_suspicious_txn_id", "graph_case_id"):
             if name in case and not isinstance(case.get(name), str):
-                report.add_error("wrong_type", f"case.{name}", f"{name} must be a string (\"\" when absent)")
+                report.add_error(
+                    "wrong_type", f"case.{name}", f'{name} must be a string ("" when absent)'
+                )
         if "written_to_graph" in case and not isinstance(case.get("written_to_graph"), bool):
-            report.add_error("wrong_type", "case.written_to_graph", "written_to_graph must be a boolean")
+            report.add_error(
+                "wrong_type", "case.written_to_graph", "written_to_graph must be a boolean"
+            )
 
         exposure = case.get("exposure_usd")
         if not is_number(exposure) or float(exposure) < 0:  # type: ignore[arg-type]
             report.add_error(
-                "wrong_type", "case.exposure_usd", f"exposure_usd must be a non-negative number, got {exposure!r}"
+                "wrong_type",
+                "case.exposure_usd",
+                f"exposure_usd must be a non-negative number, got {exposure!r}",
             )
 
         self._check_summary(case, report)
@@ -236,20 +281,24 @@ class ShapeRule(ValidationRule):
     def _check_summary(self, case: Mapping[str, Any], report: ValidationReport) -> None:
         summary = case.get("summary")
         if not nonempty_str(summary):
-            report.add_error("empty_field", "case.summary", "summary is required: two to six sentences")
+            report.add_error(
+                "empty_field", "case.summary", "summary is required: two to six sentences"
+            )
             return
         low, high = SUMMARY_SENTENCES
         sentences = count_sentences(str(summary))
         if sentences < low:
             report.add_error(
-                "summary_too_short", "case.summary",
+                "summary_too_short",
+                "case.summary",
                 f"summary reads as {sentences} sentence(s); Guide.md asks for {low} to {high}",
             )
         elif sentences > high:
             # A warning, not an error: the sentence counter is an approximation and
             # an over-long summary costs style marks, not the field.
             report.add_warning(
-                "summary_too_long", "case.summary",
+                "summary_too_long",
+                "case.summary",
                 f"summary reads as {sentences} sentences; Guide.md asks for {low} to {high}",
             )
 
@@ -273,7 +322,9 @@ class ShapeRule(ValidationRule):
                 if name in item and not nonempty_str(item.get(name)):
                     report.add_error("empty_field", f"{path}.{name}", f"{path}.{name} is empty")
             if "entity_ids" in item and not is_str_list(item.get("entity_ids")):
-                report.add_error("wrong_type", f"{path}.entity_ids", "entity_ids must be a list of strings")
+                report.add_error(
+                    "wrong_type", f"{path}.entity_ids", "entity_ids must be a list of strings"
+                )
 
     def _check_containers(self, answer: Mapping[str, Any], report: ValidationReport) -> None:
         """Presence only. The value checks belong to the rule that owns each block."""
@@ -287,7 +338,9 @@ class ShapeRule(ValidationRule):
                     continue
                 for name in REQUEST_FIELDS:
                     if name not in request:
-                        report.add_error("missing_field", f"{path}.{name}", f"{path}: missing '{name}'")
+                        report.add_error(
+                            "missing_field", f"{path}.{name}", f"{path}: missing '{name}'"
+                        )
 
         for block, fields in (("next_best_actions", ACTIONS_FIELDS), ("sar", SAR_FIELDS)):
             value = answer.get(block)
@@ -296,15 +349,15 @@ class ShapeRule(ValidationRule):
                 continue
             for name in fields:
                 if name not in value:
-                    report.add_error("missing_field", f"{block}.{name}", f"{block}: missing '{name}'")
+                    report.add_error(
+                        "missing_field", f"{block}.{name}", f"{block}: missing '{name}'"
+                    )
 
     def _check_enum(
         self, value: object, allowed: frozenset[str], path: str, report: ValidationReport
     ) -> None:
         if value not in allowed:
-            report.add_error(
-                "unknown_value", path, f"{path} {value!r} not in {sorted(allowed)}"
-            )
+            report.add_error("unknown_value", path, f"{path} {value!r} not in {sorted(allowed)}")
 
 
 class RoutingRule(ValidationRule):
@@ -334,7 +387,8 @@ class RoutingRule(ValidationRule):
 
         if not nonempty_str(actions.get("what_changed")):
             report.add_error(
-                "empty_field", "next_best_actions.what_changed",
+                "empty_field",
+                "next_best_actions.what_changed",
                 "what_changed is required: one or two sentences on why final differs from initial, or 'nothing'",
             )
 
@@ -352,7 +406,9 @@ class RoutingRule(ValidationRule):
             return
         if not items:
             report.add_error(
-                "actions_empty", f"next_best_actions.{phase}", f"{phase} must recommend at least one action"
+                "actions_empty",
+                f"next_best_actions.{phase}",
+                f"{phase} must recommend at least one action",
             )
         seen: set[str] = set()
         for index, item in enumerate(items):
@@ -367,19 +423,24 @@ class RoutingRule(ValidationRule):
             name_value, route = item.get("action"), item.get("route")
             if name_value not in ACTION_VALUES:
                 report.add_error(
-                    "unknown_action", f"{path}.action", f"'{name_value}' is not one of the 14 policy actions"
+                    "unknown_action",
+                    f"{path}.action",
+                    f"'{name_value}' is not one of the 14 policy actions",
                 )
                 continue
             action_name = str(name_value)
             if route not in ROUTE_VALUES:
                 report.add_error(
-                    "unknown_route", f"{path}.route", f"route {route!r} not in {sorted(ROUTE_VALUES)}"
+                    "unknown_route",
+                    f"{path}.route",
+                    f"route {route!r} not in {sorted(ROUTE_VALUES)}",
                 )
             else:
                 expected = self._expected_route(action_name, exposure_usd)
                 if route != expected:
                     report.add_error(
-                        "route_mismatch", f"{path}.route",
+                        "route_mismatch",
+                        f"{path}.route",
                         f"{action_name}{self._exposure_clause(action_name, exposure_usd)} must route "
                         f"'{expected}', got '{route}'",
                     )
@@ -428,7 +489,8 @@ class RoutingRule(ValidationRule):
             for index, item in enumerate(items):
                 if isinstance(item, Mapping) and item.get("action") == Action.BLOCK_ALL_CARDS.value:
                     report.add_error(
-                        "r10_block_all_cards", f"next_best_actions.{phase}[{index}].action",
+                        "r10_block_all_cards",
+                        f"next_best_actions.{phase}[{index}].action",
                         "R10 bars BLOCK_ALL_CARDS unless two of the customer's cards show confirmed "
                         "fraud (a 'fraud' verdict plus a connected card) or credentials are confirmed "
                         "compromised (pattern 'account_takeover')",
@@ -455,24 +517,30 @@ class SarConsistencyRule(ValidationRule):
 
         if not nonempty_str(sar.get("reason")):
             report.add_error(
-                "empty_field", "sar.reason",
+                "empty_field",
+                "sar.reason",
                 "sar.reason is required whether or not a report is filed: why file, or why not, citing the policy rule",
             )
 
         filing = sar.get("file")
         if not isinstance(filing, bool):
-            report.add_error("wrong_type", "sar.file", f"sar.file must be a boolean, got {filing!r}")
+            report.add_error(
+                "wrong_type", "sar.file", f"sar.file must be a boolean, got {filing!r}"
+            )
             return
 
         if isinstance(actions, Mapping):
             final = actions.get("final")
-            final_names = {
-                item.get("action") for item in final if isinstance(item, Mapping)
-            } if isinstance(final, list) else set()
+            final_names = (
+                {item.get("action") for item in final if isinstance(item, Mapping)}
+                if isinstance(final, list)
+                else set()
+            )
             files_report = Action.FILE_REPORT.value in final_names
             if filing != files_report:
                 report.add_error(
-                    "sar_disagrees_with_actions", "sar.file",
+                    "sar_disagrees_with_actions",
+                    "sar.file",
                     f"sar.file is {filing} but FILE_REPORT {'is' if files_report else 'is not'} "
                     "in the final actions",
                 )
@@ -485,53 +553,70 @@ class SarConsistencyRule(ValidationRule):
     def _check_filing(self, sar: Mapping[str, Any], report: ValidationReport) -> None:
         narrative = sar.get("narrative")
         if not nonempty_str(narrative):
-            report.add_error("empty_field", "sar.narrative", "sar.file is true but narrative is empty")
+            report.add_error(
+                "empty_field", "sar.narrative", "sar.file is true but narrative is empty"
+            )
         else:
             low, high = NARRATIVE_SENTENCES
             sentences = count_sentences(str(narrative))
             if not low <= sentences <= high:
                 report.add_warning(
-                    "narrative_length", "sar.narrative",
+                    "narrative_length",
+                    "sar.narrative",
                     f"narrative reads as {sentences} sentence(s); Guide.md asks for {low} to {high}",
                 )
         if not sar.get("subjects"):
-            report.add_error("empty_field", "sar.subjects", "sar.file is true but subjects is empty")
+            report.add_error(
+                "empty_field", "sar.subjects", "sar.file is true but subjects is empty"
+            )
         dates = sar.get("activity_dates")
         if not isinstance(dates, list) or len(dates) != 2:
             report.add_error(
-                "wrong_cardinality", "sar.activity_dates",
+                "wrong_cardinality",
+                "sar.activity_dates",
                 "sar.activity_dates must hold exactly two dates, first and last",
             )
         else:
             malformed = [d for d in dates if not (isinstance(d, str) and _ISO_DATE.match(d))]
             if malformed:
                 report.add_warning(
-                    "date_format", "sar.activity_dates",
+                    "date_format",
+                    "sar.activity_dates",
                     f"activity dates {malformed} are not YYYY-MM-DD",
                 )
             elif dates[0] > dates[1]:
                 report.add_warning(
-                    "date_order", "sar.activity_dates",
+                    "date_order",
+                    "sar.activity_dates",
                     f"activity_dates run backwards: {dates[0]} after {dates[1]}",
                 )
         if not is_number(sar.get("total_amount_usd")) or float(sar.get("total_amount_usd", 0)) <= 0:
             report.add_warning(
-                "sar_total", "sar.total_amount_usd",
+                "sar_total",
+                "sar.total_amount_usd",
                 "sar.file is true but total_amount_usd is not a positive number",
             )
 
     def _check_not_filing(self, sar: Mapping[str, Any], report: ValidationReport) -> None:
         if sar.get("narrative"):
-            report.add_error("sar_not_empty", "sar.narrative", "sar.file is false, so narrative must be \"\"")
+            report.add_error(
+                "sar_not_empty", "sar.narrative", 'sar.file is false, so narrative must be ""'
+            )
         if sar.get("subjects"):
-            report.add_error("sar_not_empty", "sar.subjects", "sar.file is false, so subjects must be []")
+            report.add_error(
+                "sar_not_empty", "sar.subjects", "sar.file is false, so subjects must be []"
+            )
         if sar.get("total_amount_usd"):
             report.add_error(
-                "sar_not_empty", "sar.total_amount_usd", "sar.file is false, so total_amount_usd must be 0"
+                "sar_not_empty",
+                "sar.total_amount_usd",
+                "sar.file is false, so total_amount_usd must be 0",
             )
         if sar.get("activity_dates"):
             report.add_error(
-                "sar_not_empty", "sar.activity_dates", "sar.file is false, so activity_dates must be []"
+                "sar_not_empty",
+                "sar.activity_dates",
+                "sar.file is false, so activity_dates must be []",
             )
 
 
@@ -556,17 +641,21 @@ class LegitimateCaseRule(ValidationRule):
         if verdict == Verdict.LEGITIMATE.value:
             if case.get("affected_txn_ids"):
                 report.add_error(
-                    "legitimate_not_clean", "case.affected_txn_ids",
+                    "legitimate_not_clean",
+                    "case.affected_txn_ids",
                     "verdict is legitimate, so affected_txn_ids must be empty",
                 )
             if case.get("exposure_usd"):
                 report.add_error(
-                    "legitimate_not_clean", "case.exposure_usd",
+                    "legitimate_not_clean",
+                    "case.exposure_usd",
                     "verdict is legitimate, so exposure_usd must be 0",
                 )
             if isinstance(sar, Mapping) and sar.get("file"):
                 report.add_error(
-                    "legitimate_not_clean", "sar.file", "verdict is legitimate, so sar.file must be false"
+                    "legitimate_not_clean",
+                    "sar.file",
+                    "verdict is legitimate, so sar.file must be false",
                 )
 
         contradiction = {
@@ -575,7 +664,8 @@ class LegitimateCaseRule(ValidationRule):
         }
         if verdict in contradiction and status == contradiction[str(verdict)]:
             report.add_warning(
-                "status_contradicts_verdict", "case.status",
+                "status_contradicts_verdict",
+                "case.status",
                 f"status '{status}' contradicts verdict '{verdict}'",
             )
 
@@ -583,17 +673,21 @@ class LegitimateCaseRule(ValidationRule):
         affected = case.get("affected_txn_ids")
         if nonempty_str(first) and isinstance(affected, list) and first not in affected:
             report.add_error(
-                "first_suspicious_not_in_episode", "case.first_suspicious_txn_id",
+                "first_suspicious_not_in_episode",
+                "case.first_suspicious_txn_id",
                 f"first_suspicious_txn_id '{first}' is not listed in affected_txn_ids",
             )
 
         if case.get("written_to_graph") and not nonempty_str(case.get("graph_case_id")):
             report.add_error(
-                "empty_field", "case.graph_case_id", "written_to_graph is true but graph_case_id is empty"
+                "empty_field",
+                "case.graph_case_id",
+                "written_to_graph is true but graph_case_id is empty",
             )
         if not case.get("written_to_graph") and nonempty_str(case.get("graph_case_id")):
             report.add_warning(
-                "unexpected_value", "case.graph_case_id",
+                "unexpected_value",
+                "case.graph_case_id",
                 "graph_case_id is set but written_to_graph is false",
             )
 
@@ -622,18 +716,21 @@ class EvidenceRequestRule(ValidationRule):
                 continue
             if request.get("type") not in REQUEST_TYPE_VALUES:
                 report.add_error(
-                    "unknown_value", f"{path}.type",
+                    "unknown_value",
+                    f"{path}.type",
                     f"{path}.type {request.get('type')!r} not in {sorted(REQUEST_TYPE_VALUES)}",
                 )
             step = request.get("asked_after_step")
             if not isinstance(step, int) or isinstance(step, bool) or step < 1:
                 report.add_error(
-                    "wrong_type", f"{path}.asked_after_step",
+                    "wrong_type",
+                    f"{path}.asked_after_step",
                     f"asked_after_step must be the 1-based step number the request was made after, got {step!r}",
                 )
             if not nonempty_str(request.get("assumed_response")):
                 report.add_error(
-                    "empty_field", f"{path}.assumed_response",
+                    "empty_field",
+                    f"{path}.assumed_response",
                     "assumed_response is required: the response assumed, and the basis for assuming it",
                 )
 
@@ -648,7 +745,8 @@ class EvidenceRequestRule(ValidationRule):
             return
         if actions.get("initial") != actions.get("final"):
             report.add_error(
-                "final_differs_without_request", "next_best_actions.final",
+                "final_differs_without_request",
+                "next_best_actions.final",
                 "no evidence was requested, so 'final' must equal 'initial', reasons included",
             )
 
@@ -667,7 +765,8 @@ class EvidenceRequestRule(ValidationRule):
             ordinal = int(match.group(1))
             if not 1 <= ordinal <= len(requests):
                 report.add_error(
-                    "dangling_reference", f"case.evidence[{index}].ref",
+                    "dangling_reference",
+                    f"case.evidence[{index}].ref",
                     f"ref '{item.get('ref')}' points at evidence request {ordinal}, "
                     f"but the answer lists {len(requests)}",
                 )

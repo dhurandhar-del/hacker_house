@@ -280,9 +280,7 @@ class PolicyEngine:
             recs.add(Action.CREATE_CASE, "R2: cardholder denies the transaction", state)
         elif response is CustomerResponse.CONFIRMED:
             if not state.shared_origin and not state.undocumented_pattern:
-                recs.add(
-                    Action.CLOSE_NO_FRAUD, "R3: cardholder confirms the transaction", state
-                )
+                recs.add(Action.CLOSE_NO_FRAUD, "R3: cardholder confirms the transaction", state)
         elif response is CustomerResponse.NO_REPLY:
             recs.add(Action.MONITOR_CARD, "R4: no reply within 24 hours", state)
             if state.pending_authorization:
@@ -369,8 +367,7 @@ class PolicyEngine:
             return
         recs.add(
             Action.CLOSE_NO_FRAUD,
-            f"assessed probability {state.fraud_probability:.2f} with no supporting "
-            f"evidence found",
+            f"assessed probability {state.fraud_probability:.2f} with no supporting evidence found",
             state,
         )
 

@@ -5,6 +5,7 @@ but for the injected table. The rest exist because v1 shipped two silent
 defaults and one asymmetric cap, and each of those three is a way the fraud
 probability can be wrong with nothing downstream able to tell.
 """
+
 from __future__ import annotations
 
 import json
@@ -34,7 +35,9 @@ def logit(p: float) -> float:
 
 
 def test_ledger_prior_follows_the_trigger(table):
-    assert EvidenceLedger(table, "customer_report").prior > EvidenceLedger(table, "risk_score").prior
+    assert (
+        EvidenceLedger(table, "customer_report").prior > EvidenceLedger(table, "risk_score").prior
+    )
 
 
 def test_ledger_moves_with_evidence_and_records_why(table):
@@ -52,7 +55,7 @@ def test_ledger_caps_correlated_evidence(table):
     for feature in ("device_new", "device_never_used_on_card", "proxy_present"):
         led.post(feature, True, "device signal", REF, ["X"])
     assert any(p.capped for p in led.postings)
-    assert led.independent_support() == 1     # one group, however many postings
+    assert led.independent_support() == 1  # one group, however many postings
 
 
 def test_ledger_counts_independent_groups_not_postings(table):
@@ -80,7 +83,9 @@ def test_the_device_group_worked_example(table):
     assert led.prior == 0.25
 
     first = led.post("device_new", True, "device is new to this account", REF, ["X"])
-    second = led.post("device_never_used_on_card", True, "device never used on this card", REF, ["X"])
+    second = led.post(
+        "device_never_used_on_card", True, "device never used on this card", REF, ["X"]
+    )
     third = led.post("proxy_present", True, "the session is behind a proxy", REF, ["X"])
 
     assert (first.lr, second.lr, third.lr) == (1.3006, 1.7507, 2.6001)
@@ -88,7 +93,9 @@ def test_the_device_group_worked_example(table):
     assert third.capped is True
 
     # The third posting is trimmed to whatever is left of the group's 1.2.
-    assert third.log_lr == pytest.approx(GROUP_CAP - (math.log(1.3006) + math.log(1.7507)), abs=5e-5)
+    assert third.log_lr == pytest.approx(
+        GROUP_CAP - (math.log(1.3006) + math.log(1.7507)), abs=5e-5
+    )
     assert led.group_totals["device"] == pytest.approx(GROUP_CAP, abs=1e-12)
     assert led.independent_support() == 1
 
@@ -107,10 +114,12 @@ def test_contrary_evidence_is_not_over_suppressed(table):
     erased, on exactly the legitimate cases it mattered for.
     """
     led = EvidenceLedger(table, "risk_score")
-    led.post_judgement("device", 0.5, "one incriminating device reading", "evidence_request:1",
-                       cap_multiplier=1.0)
-    contrary = led.post_judgement("device", -2.0, "the device is the customer's own",
-                                  "evidence_request:2", cap_multiplier=1.0)
+    led.post_judgement(
+        "device", 0.5, "one incriminating device reading", "evidence_request:1", cap_multiplier=1.0
+    )
+    contrary = led.post_judgement(
+        "device", -2.0, "the device is the customer's own", "evidence_request:2", cap_multiplier=1.0
+    )
 
     assert led.group_totals["device"] == pytest.approx(-GROUP_CAP, abs=1e-12)
     assert led.group_totals["device"] != pytest.approx(-0.2, abs=1e-6)
@@ -130,8 +139,9 @@ def test_capping_is_symmetric_in_both_directions(table):
 
 def test_a_judgement_is_capped_wider_than_a_fitted_feature(table):
     led = EvidenceLedger(table, "risk_score")
-    posting = led.post_judgement("response", 5.0, "the customer denies the charge",
-                                 "evidence_request:1")
+    posting = led.post_judgement(
+        "response", 5.0, "the customer denies the charge", "evidence_request:1"
+    )
     assert led.group_totals["response"] == pytest.approx(GROUP_CAP * 1.5)
     assert posting.log_lr == pytest.approx(1.8)
     assert posting.source is EvidenceSource.CUSTOMER
@@ -149,7 +159,7 @@ def test_lr_absent_moves_the_probability_the_other_way(table):
     absent.post("device_new", False, "device is known to this account", REF, ["X"])
 
     assert present.p > start > absent.p
-    assert absent.postings[0].lr == 0.9585      # lr_absent from the fitted table
+    assert absent.postings[0].lr == 0.9585  # lr_absent from the fitted table
     assert absent.postings[0].log_lr < 0
 
 
@@ -284,7 +294,9 @@ def test_a_state_built_from_a_snapshot_reports_the_snapshots_probability(table):
 
     builder = CaseStateBuilder(ledger)
     initial = builder.build(
-        facts=ScopedFacts(), trigger_type=TriggerType.RISK_SCORE, exposure_usd=0.0,
+        facts=ScopedFacts(),
+        trigger_type=TriggerType.RISK_SCORE,
+        exposure_usd=0.0,
         snapshot=before,
     )
     final = builder.build(
@@ -293,3 +305,25 @@ def test_a_state_built_from_a_snapshot_reports_the_snapshots_probability(table):
     assert initial.fraud_probability == round(before.p, 4)
     assert final.fraud_probability == round(ledger.p, 4)
     assert initial.fraud_probability > final.fraud_probability
+
+
+def test_a_narrower_cap_on_a_later_posting_cannot_invert_its_sign(table):
+    """The cap belongs to the group, not to the call that posts into it.
+
+    The regression this pins: `cap` arrived per call — 1.2 from a fitted
+    feature, 1.8 from a judgement — and a narrower one arriving after the group
+    total had passed it made `clamped - used` negative whatever the sign of the
+    increment. An incriminating +0.4 was applied as -0.5 and recorded that way
+    in the trace the console renders.
+    """
+    ledger = EvidenceLedger(table, TriggerType.RISK_SCORE)
+    ledger.post_judgement(group="device", log_lr=1.7, claim="wide-cap judgement", ref=REF)
+    second = ledger.post_judgement(
+        group="device",
+        log_lr=0.4,
+        claim="second incriminating judgement",
+        ref=REF,
+        cap_multiplier=1.0,
+    )
+    assert second.log_lr >= 0.0, "an incriminating posting moved the probability down"
+    assert ledger.group_totals["device"] <= GROUP_CAP * 1.5 + 1e-9

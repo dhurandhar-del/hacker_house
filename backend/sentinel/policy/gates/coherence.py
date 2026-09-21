@@ -31,9 +31,7 @@ class ReportNeedsCaseGate(PolicyGate):
     def apply(self, recs: RecommendationSet, state: CaseState) -> GateOutcome:
         if not recs.has(Action.FILE_REPORT) or recs.has(Action.CREATE_CASE):
             return self._silent()
-        recs.insert_first(
-            Action.CREATE_CASE, "3a: a report always has a case behind it", state
-        )
+        recs.insert_first(Action.CREATE_CASE, "3a: a report always has a case behind it", state)
         return GateOutcome(
             self.name,
             added=(Action.CREATE_CASE,),

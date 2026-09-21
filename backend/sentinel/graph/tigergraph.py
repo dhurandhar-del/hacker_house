@@ -82,7 +82,9 @@ class TigerGraphRestRepository(GraphRepository):
         owns the client it makes here, and :meth:`aclose` closes it.
         """
         http = httpx.AsyncClient(timeout=settings.tg_query_timeout_s, follow_redirects=True)
-        return cls(settings, http, TokenManager(settings, http), ResponseNormalizer(), owns_http=True)
+        return cls(
+            settings, http, TokenManager(settings, http), ResponseNormalizer(), owns_http=True
+        )
 
     async def aclose(self) -> None:
         """Close the HTTP client, but only if this repository created it."""
@@ -253,7 +255,8 @@ class TigerGraphRestRepository(GraphRepository):
                 attempts = await self._retry_or_raise(
                     attempts,
                     GraphUnavailable(
-                        f"REST++ returned {response.status_code}", url=url,
+                        f"REST++ returned {response.status_code}",
+                        url=url,
                         status=response.status_code,
                     ),
                 )
@@ -323,7 +326,9 @@ class TigerGraphRestRepository(GraphRepository):
 
     def _encode_value(self, key: str, value: Any) -> Any:
         if value is None:
-            raise ValueError(f"GSQL parameter {key!r} is None; every installed query requires a value")
+            raise ValueError(
+                f"GSQL parameter {key!r} is None; every installed query requires a value"
+            )
         if isinstance(value, bool):
             return "true" if value else "false"
         if isinstance(value, (list, tuple, set)):

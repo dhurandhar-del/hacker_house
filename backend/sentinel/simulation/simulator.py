@@ -101,9 +101,7 @@ class EvidenceSimulator:
                 ),
                 assumption_basis=confirm_basis,
                 log_lr=CONFIRMATION_LOG_LR,
-                claim=(
-                    "The cardholder confirmed the transaction when asked to validate it."
-                ),
+                claim=("The cardholder confirmed the transaction when asked to validate it."),
             )
         if deny_basis:
             return SimulatedResponse(
@@ -121,10 +119,7 @@ class EvidenceSimulator:
     def _confirmation_basis(self) -> tuple[str, ...]:
         """Facts that make "yes, that was me" the grounded answer."""
         basis: list[str] = []
-        if (
-            self.recurring is not None
-            and self.recurring.distinct_months >= RECURRING_MONTHS
-        ):
+        if self.recurring is not None and self.recurring.distinct_months >= RECURRING_MONTHS:
             basis.append(self._ref("recurring_charge_probe"))
         if (
             self.region is not None
@@ -186,11 +181,35 @@ class EvidenceSimulator:
     # ── step-up authentication ───────────────────────────────────────────────
 
     def _step_up(self) -> SimulatedResponse:
-        """A challenge the real cardholder passes and a stolen number does not."""
-        known_device = (
-            self.device is not None
-            and self.device.prior_txns_this_device_on_card > 0
-        )
+        """A challenge the real cardholder passes and a stolen number does not.
+
+        Three branches, not two. ``prior_txns_this_device_on_card == 0`` means
+        one of two very different things: this card has never used this device,
+        or *there is no identity record at all* — true of seven of the twenty
+        alerts, where the transaction was card-present and Vesta captured no
+        device. Reading the second as the first invents a failed challenge
+        worth +1.1 log-odds on a card the graph says nothing about, which on a
+        case already near 0.84 carries it past ``stop_high`` and turns the
+        verdict to ``fraud`` on evidence that does not exist.
+
+        ``DeviceNovelty.observable`` is the distinction, and it exists for this.
+        """
+        if self.device is None or not self.device.observable:
+            return SimulatedResponse(
+                request_type=RequestType.STEP_UP_AUTH,
+                branch=CustomerResponse.NO_REPLY,
+                assumed_response=(
+                    "Step-up could not be evaluated: the transaction carries no identity "
+                    "record, so there is no device to recognise or challenge."
+                ),
+                assumption_basis=tuple(b for b in (self._ref("device_novelty"),) if b),
+                log_lr=0.0,
+                claim=(
+                    "No identity record exists for this transaction, so a step-up "
+                    "challenge says nothing either way."
+                ),
+            )
+        known_device = self.device.prior_txns_this_device_on_card > 0
         if known_device:
             return SimulatedResponse(
                 request_type=RequestType.STEP_UP_AUTH,
@@ -198,7 +217,7 @@ class EvidenceSimulator:
                 assumed_response=(
                     "Step-up challenge passed: the one-time passcode was entered correctly."
                 ),
-                assumption_basis=(self._ref("device_novelty"),),
+                assumption_basis=tuple(b for b in (self._ref("device_novelty"),) if b),
                 log_lr=STEP_UP_PASS_LOG_LR,
                 claim="A step-up authentication challenge was passed on a device this card knows.",
             )
@@ -208,7 +227,7 @@ class EvidenceSimulator:
             assumed_response=(
                 "Step-up challenge not completed: no response to the one-time passcode."
             ),
-            assumption_basis=(self._ref("device_novelty"),),
+            assumption_basis=tuple(b for b in (self._ref("device_novelty"),) if b),
             log_lr=STEP_UP_FAIL_LOG_LR,
             claim="A step-up authentication challenge went uncompleted on an unrecognised device.",
         )

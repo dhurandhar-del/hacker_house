@@ -147,7 +147,9 @@ class AnswerAssembler:
             # the rule chunks title themselves "R7. ...". One prefix, not two.
             title = str(entry.get("title") or f"§{rule}").removeprefix("Fraud Policy ")
             because = reasons.get(rule) or (ctx.sar_reason if doc_id == "POL-3A" else "")
-            claim = f"Fraud Policy {title}" + (f" — applied here because {because}" if because else "")
+            claim = f"Fraud Policy {title}" + (
+                f" — applied here because {because}" if because else ""
+            )
             out.append(
                 Evidence(
                     claim=claim,
@@ -180,12 +182,9 @@ class AnswerAssembler:
         if ctx.response is None:
             # Nothing was asked, so the two lists must be identical — the
             # validator compares them deeply, reason strings included.
-            return NextBestActions(
-                initial=initial, final=list(initial), what_changed="nothing"
-            )
+            return NextBestActions(initial=initial, final=list(initial), what_changed="nothing")
         final = [
-            ActionRecommendation(action=r.action, route=r.route, reason=r.reason)
-            for r in ctx.final
+            ActionRecommendation(action=r.action, route=r.route, reason=r.reason) for r in ctx.final
         ]
         return NextBestActions(
             initial=initial,
@@ -194,9 +193,7 @@ class AnswerAssembler:
         )
 
     @staticmethod
-    def _sar(
-        ctx: InvestigationContext, exposure: float, affected: list[str]
-    ) -> SarReport:
+    def _sar(ctx: InvestigationContext, exposure: float, affected: list[str]) -> SarReport:
         """The filing decision comes from the policy engine, never from prose."""
         if not ctx.sar_file:
             return SarReport(

@@ -43,9 +43,7 @@ class VertexReader(Protocol):
 
     async def get_vertex(self, vtype: str, vid: str) -> dict[str, Any] | None: ...
 
-    async def get_vertices(
-        self, vtype: str, ids: Sequence[str]
-    ) -> dict[str, dict[str, Any]]: ...
+    async def get_vertices(self, vtype: str, ids: Sequence[str]) -> dict[str, dict[str, Any]]: ...
 
 
 class GraphIdentityChecker:
@@ -82,7 +80,8 @@ class GraphIdentityChecker:
             found[vtype] = await self._fetch(vtype, sorted(ids))
             for missing in sorted(ids - found[vtype].keys()):
                 report.add_error(
-                    "vertex_not_found", f"{vtype}:{missing}",
+                    "vertex_not_found",
+                    f"{vtype}:{missing}",
                     f"{vtype} '{missing}' does not exist in the graph",
                 )
 
@@ -165,7 +164,8 @@ class GraphIdentityChecker:
             amount = self._amount(transactions.get(txn_id))
             if amount is None:
                 report.add_warning(
-                    "exposure_unchecked", "case.exposure_usd",
+                    "exposure_unchecked",
+                    "case.exposure_usd",
                     f"exposure was not re-added: transaction '{txn_id}' has no readable amount in the graph",
                 )
                 return
@@ -173,7 +173,8 @@ class GraphIdentityChecker:
 
         if abs(total - float(claimed)) > self.EXPOSURE_TOLERANCE_USD:
             report.add_error(
-                "exposure_mismatch", "case.exposure_usd",
+                "exposure_mismatch",
+                "case.exposure_usd",
                 f"exposure_usd is {float(claimed):,.2f} but the {len(affected)} affected "
                 f"transactions sum to {total:,.2f}",
             )
@@ -203,7 +204,8 @@ class GraphIdentityChecker:
             vertex = None
         if vertex is None:
             report.add_error(
-                "graph_case_not_found", "case.graph_case_id",
+                "graph_case_not_found",
+                "case.graph_case_id",
                 f"written_to_graph is true but FraudCase '{case_id}' is not in the graph",
             )
 

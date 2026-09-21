@@ -45,7 +45,9 @@ class StubLlm(LlmClient):
         self.replies = replies
         self.purposes: list[str] = []
 
-    async def complete(self, *, purpose: str, system: str, user: str, schema: Any, max_output_tokens: int = 1200):  # type: ignore[override]
+    async def complete(
+        self, *, purpose: str, system: str, user: str, schema: Any, max_output_tokens: int = 1200
+    ):  # type: ignore[override]
         from sentinel.llm.client import LlmResponse
 
         self.purposes.append(purpose)
@@ -83,10 +85,20 @@ def seeded_graph() -> FakeGraphRepository:
         {
             "txn": [
                 {
-                    "txn_id": TXN, "card_id": CARD, "customer_id": "C08623",
-                    "ts": TS, "amt": 49.0, "product": "W", "channel": "in_person",
-                    "risk_score": 0.4, "addr1": REGION, "addr2": "87.0", "dist1": 9,
-                    "device_key": "", "device_new": "", "proxy_flag": "",
+                    "txn_id": TXN,
+                    "card_id": CARD,
+                    "customer_id": "C08623",
+                    "ts": TS,
+                    "amt": 49.0,
+                    "product": "W",
+                    "channel": "in_person",
+                    "risk_score": 0.4,
+                    "addr1": REGION,
+                    "addr2": "87.0",
+                    "dist1": 9,
+                    "device_key": "",
+                    "device_new": "",
+                    "proxy_flag": "",
                     "m_feats": "T|T|T|M0|F|T|F|F|T",
                 }
             ],
@@ -97,8 +109,15 @@ def seeded_graph() -> FakeGraphRepository:
     repo.seed_query(
         "card_baseline",
         {
-            "card": [{"card_id": CARD, "n_txns": 1134, "n_in_person": 1080,
-                      "median_amt": 68.01, "p95_amt": 425.66}],
+            "card": [
+                {
+                    "card_id": CARD,
+                    "n_txns": 1134,
+                    "n_in_person": 1080,
+                    "median_amt": 68.01,
+                    "p95_amt": 425.66,
+                }
+            ],
             "customer": [{"customer_id": "C08623", "n_cards": 2}],
             "sibling_cards": [
                 {"SIB.card_id": CARD, "SIB.n_txns": 1134},
@@ -110,72 +129,131 @@ def seeded_graph() -> FakeGraphRepository:
         "card_window",
         {
             "window": [
-                {"T.txn_id": TXN, "T.ts": TS, "T.amt": 49.0, "T.channel": "in_person",
-                 "T.risk_score": 0.4, "T.addr1": REGION},
-                {"T.txn_id": "3530056", "T.ts": "2016-12-10 12:12:00", "T.amt": 116.93,
-                 "T.channel": "in_person", "T.risk_score": 0.88, "T.addr1": REGION},
+                {
+                    "T.txn_id": TXN,
+                    "T.ts": TS,
+                    "T.amt": 49.0,
+                    "T.channel": "in_person",
+                    "T.risk_score": 0.4,
+                    "T.addr1": REGION,
+                },
+                {
+                    "T.txn_id": "3530056",
+                    "T.ts": "2016-12-10 12:12:00",
+                    "T.amt": 116.93,
+                    "T.channel": "in_person",
+                    "T.risk_score": 0.88,
+                    "T.addr1": REGION,
+                },
             ]
         },
     )
     repo.seed_query(
         "region_novelty",
         {
-            "prior_txns_in_region": 42, "total_txns_in_region": 51,
-            "prior_txns_on_card": 980, "first_seen_in_region": "2016-07-09 23:53:35",
+            "prior_txns_in_region": 42,
+            "total_txns_in_region": 51,
+            "prior_txns_on_card": 980,
+            "first_seen_in_region": "2016-07-09 23:53:35",
             "last_in_region_before_alert": "2016-12-09 10:00:00",
-            "in_person_elsewhere_24h": 10, "other_regions_24h": ["204.0"],
+            "in_person_elsewhere_24h": 10,
+            "other_regions_24h": ["204.0"],
         },
     )
     repo.seed_query(
         "amount_band_probe",
-        {"prior_charges_in_band": 53, "total_charges_in_band": 57,
-         "prior_txns_on_card": 980, "card_amounts": [{"C.median_amt": 68.01}]},
+        {
+            "prior_charges_in_band": 53,
+            "total_charges_in_band": 57,
+            "prior_txns_on_card": 980,
+            "card_amounts": [{"C.median_amt": 68.01}],
+        },
     )
     repo.seed_query(
         "card_amount_stats",
-        {"n_prior": 980, "sum_amt": 126_261.64, "sum_amt_sq": 41_956_463.08,
-         "max_prior_amt": 2680.95, "min_prior_amt": 4.96},
+        {
+            "n_prior": 980,
+            "sum_amt": 126_261.64,
+            "sum_amt_sq": 41_956_463.08,
+            "max_prior_amt": 2680.95,
+            "min_prior_amt": 4.96,
+        },
     )
     repo.seed_query(
         "device_novelty",
-        {"flags": [{"R.txn_id": TXN, "R.device_key": "", "R.device_new": "", "R.proxy_flag": ""}],
-         "prior_txns_this_device_on_card": 0, "prior_online_txns_on_card": 54,
-         "prior_txns_on_card": 980},
+        {
+            "flags": [
+                {"R.txn_id": TXN, "R.device_key": "", "R.device_new": "", "R.proxy_flag": ""}
+            ],
+            "prior_txns_this_device_on_card": 0,
+            "prior_online_txns_on_card": 54,
+            "prior_txns_on_card": 980,
+        },
     )
     repo.seed_query(
         "txn_sequence_context",
-        {"has_prev": 1, "has_next": 1, "seconds_since_prev": 2920, "seconds_to_next": 18661,
-         "prev_txn": [], "next_txn": []},
+        {
+            "has_prev": 1,
+            "has_next": 1,
+            "seconds_since_prev": 2920,
+            "seconds_to_next": 18661,
+            "prev_txn": [],
+            "next_txn": [],
+        },
     )
     repo.seed_query(
         "customer_case_history",
-        {"cases": [{"R.case_id": f"CC-{i:04d}", "R.card_id": CARD,
-                    "R.outcome": "confirmed_fraud"} for i in range(1, 6)],
-         "confirmed_fraud_cases": 5, "cleared_cases": 1,
-         "customer_reports_confirmed_fraud": 5, "lifetime_exposure": 1154.18},
+        {
+            "cases": [
+                {"R.case_id": f"CC-{i:04d}", "R.card_id": CARD, "R.outcome": "confirmed_fraud"}
+                for i in range(1, 6)
+            ],
+            "confirmed_fraud_cases": 5,
+            "cleared_cases": 1,
+            "customer_reports_confirmed_fraud": 5,
+            "lifetime_exposure": 1154.18,
+        },
     )
     repo.seed_query(
         "case_memory_for_card",
-        {"bank_closed_cases": [{"CC.case_id": f"CC-{i:04d}"} for i in (141, 2671, 3310)],
-         "sentinel_cases": [], "cases_connecting_this_card": []},
+        {
+            "bank_closed_cases": [{"CC.case_id": f"CC-{i:04d}"} for i in (141, 2671, 3310)],
+            "sentinel_cases": [],
+            "cases_connecting_this_card": [],
+        },
     )
     repo.seed_query(
         "recurring_charge_probe",
-        {"matching_charges": 57, "distinct_months": 6,
-         "months": ["2016-7", "2016-8", "2016-9", "2016-10", "2016-11", "2016-12"],
-         "regions": [REGION], "txn_ids": [TXN]},
+        {
+            "matching_charges": 57,
+            "distinct_months": 6,
+            "months": ["2016-7", "2016-8", "2016-9", "2016-10", "2016-11", "2016-12"],
+            "regions": [REGION],
+            "txn_ids": [TXN],
+        },
     )
     repo.seed_query(
         "card_testing_probe",
-        {"small_online_auths_1h": 0, "small_online_auths_24h": 0, "small_txn_ids": [],
-         "largest_purchase_after": None, "purchases_after_ids": []},
+        {
+            "small_online_auths_1h": 0,
+            "small_online_auths_24h": 0,
+            "small_txn_ids": [],
+            "largest_purchase_after": None,
+            "purchases_after_ids": [],
+        },
     )
     repo.seed_query("product_novelty", {"prior_txns_this_product": 900, "prior_txns_on_card": 980})
     repo.seed_query(
         "velocity_probe",
-        {"txns_in_window": 43, "online_in_window": 2, "total_amount": 1200.0,
-         "max_risk_in_window": 0.88, "distinct_regions": 2, "distinct_devices": 0,
-         "regions": [REGION]},
+        {
+            "txns_in_window": 43,
+            "online_in_window": 2,
+            "total_amount": 1200.0,
+            "max_risk_in_window": 0.88,
+            "distinct_regions": 2,
+            "distinct_devices": 0,
+            "regions": [REGION],
+        },
     )
     return repo
 
@@ -245,8 +323,15 @@ async def test_the_ten_steps_run_in_order():
 
     started = [event.payload["name"] for event in emitter.of_type("step.started")]
     assert started == [
-        "scope", "plan", "sweep", "recall", "assess",
-        "stop_test", "request_evidence", "decide", "narrate",
+        "scope",
+        "plan",
+        "sweep",
+        "recall",
+        "assess",
+        "stop_test",
+        "request_evidence",
+        "decide",
+        "narrate",
     ]
     # The counter is monotonic from 1, because asked_after_step depends on it.
     numbers = [event.payload["step"] for event in emitter.of_type("step.started")]
@@ -309,9 +394,7 @@ async def test_no_device_evidence_is_claimed_without_an_identity_record():
     result = await orch.run(ALERT)
     evidence = result.answer.case.evidence
     assert {e.ref for e in evidence}, "evidence must cite its queries"
-    graph_claims = " ".join(
-        e.claim for e in evidence if e.source is EvidenceSource.GRAPH
-    ).lower()
+    graph_claims = " ".join(e.claim for e in evidence if e.source is EvidenceSource.GRAPH).lower()
     assert "device" not in graph_claims or "identity record" in graph_claims
 
 

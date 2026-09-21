@@ -87,12 +87,13 @@ class EmbeddingService:
             return []
         out: list[list[float]] = []
         for start in range(0, len(texts), self.batch_size):
-            batch = [t if t.strip() else _EMPTY_PLACEHOLDER for t in texts[start : start + self.batch_size]]
+            batch = [
+                t if t.strip() else _EMPTY_PLACEHOLDER
+                for t in texts[start : start + self.batch_size]
+            ]
             out.extend(await self._embed_batch(batch))
         if len(out) != len(texts):  # pragma: no cover - the API contract guarantees this
-            raise LlmUnavailable(
-                f"embeddings: asked for {len(texts)} vectors, got {len(out)}"
-            )
+            raise LlmUnavailable(f"embeddings: asked for {len(texts)} vectors, got {len(out)}")
         return out
 
     async def embed_one(self, text: str) -> list[float]:
@@ -118,9 +119,7 @@ class EmbeddingService:
                     break
                 await self._backoff(attempt, type(exc).__name__)
                 continue
-            self.meter.charge(
-                self.model, response.usage.total_tokens if response.usage else 0, 0
-            )
+            self.meter.charge(self.model, response.usage.total_tokens if response.usage else 0, 0)
             # `data` is documented as index-ordered, but the order is what keeps
             # a vector attached to the right vertex, so it is sorted, not trusted.
             return [item.embedding for item in sorted(response.data, key=lambda d: d.index)]

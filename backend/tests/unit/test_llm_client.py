@@ -161,9 +161,7 @@ async def test_a_valid_reply_is_returned_typed_and_charged():
     client, _ = client_with(
         ['{"pattern":"card_testing","pattern_description":"","claims":[],"summary":"s"}']
     )
-    out = await client.complete(
-        purpose="claims", system="sys", user="usr", schema=Assessment
-    )
+    out = await client.complete(purpose="claims", system="sys", user="usr", schema=Assessment)
     assert out.value.pattern is Pattern.CARD_TESTING
     assert out.total_tokens == 160
     assert client.meter.tokens == 160
@@ -171,7 +169,9 @@ async def test_a_valid_reply_is_returned_typed_and_charged():
 
 async def test_max_tokens_is_never_sent():
     # This model family rejects max_tokens outright — measured, not assumed.
-    client, stub = client_with(['{"pattern":"none","pattern_description":"","claims":[],"summary":""}'])
+    client, stub = client_with(
+        ['{"pattern":"none","pattern_description":"","claims":[],"summary":""}']
+    )
     await client.complete(purpose="claims", system="s", user="u", schema=Assessment)
     sent = stub.completions.calls[0]
     assert "max_tokens" not in sent
@@ -179,7 +179,9 @@ async def test_max_tokens_is_never_sent():
 
 
 async def test_the_call_is_deterministic_by_construction():
-    client, stub = client_with(['{"pattern":"none","pattern_description":"","claims":[],"summary":""}'])
+    client, stub = client_with(
+        ['{"pattern":"none","pattern_description":"","claims":[],"summary":""}']
+    )
     await client.complete(purpose="claims", system="s", user="u", schema=Assessment)
     sent = stub.completions.calls[0]
     assert sent["temperature"] == 0.0

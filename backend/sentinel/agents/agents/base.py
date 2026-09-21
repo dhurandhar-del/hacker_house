@@ -99,7 +99,9 @@ class LlmAgent(ABC, Generic[T]):
             },
             step=ctx.counter.current,
         )
-        ctx.emitter.emit("budget.updated", ctx.budget.snapshot().as_dict(), step=ctx.counter.current)
+        ctx.emitter.emit(
+            "budget.updated", ctx.budget.snapshot().as_dict(), step=ctx.counter.current
+        )
         return response.value  # type: ignore[return-value]
 
 

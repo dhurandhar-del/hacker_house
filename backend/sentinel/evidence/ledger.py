@@ -125,6 +125,8 @@ class EvidenceLedger:
         self._log_odds = math.log(self._prior / (1.0 - self._prior))
         self._postings: list[Posting] = []
         self._group_total: dict[str, float] = {}
+        #: The widest cap any posting into this group has asked for. See _apply.
+        self._group_cap_for: dict[str, float] = {}
         self._group_cap = group_cap
 
     # ── probability ──────────────────────────────────────────────────────────
@@ -244,6 +246,15 @@ class EvidenceLedger:
         entity_ids: Sequence[str] | None,
     ) -> Posting:
         used = self._group_total.get(group, 0.0)
+        # The cap is a property of the GROUP, not of the call that happens to
+        # be posting into it. `cap` arrives per call — 1.2 from a fitted
+        # feature, 1.8 from a judgement — and if a narrower one arrived after a
+        # total had already grown past it, `clamped - used` was negative
+        # whatever the sign of the increment: +0.4 applied as -0.5, recorded
+        # that way in the trace the console renders. Widening keeps the group's
+        # own ceiling monotonic, so an increment can never change sign.
+        cap = max(cap, self._group_cap_for.get(group, 0.0))
+        self._group_cap_for[group] = cap
         # The cap binds the resulting total, not the increment: see post().
         proposed = used + log_lr
         clamped = max(-cap, min(cap, proposed))

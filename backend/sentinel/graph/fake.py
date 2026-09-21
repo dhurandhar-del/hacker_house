@@ -73,9 +73,7 @@ class FakeGraphRepository(GraphRepository):
         self.queries.setdefault(name, []).insert(0, seeded)
         return self
 
-    def seed_vertex(
-        self, vtype: str, vid: str, attrs: Mapping[str, Any]
-    ) -> FakeGraphRepository:
+    def seed_vertex(self, vtype: str, vid: str, attrs: Mapping[str, Any]) -> FakeGraphRepository:
         self.vertices[(vtype, vid)] = {
             "v_id": vid,
             "v_type": vtype,
@@ -101,9 +99,7 @@ class FakeGraphRepository(GraphRepository):
         self.calls.append(RecordedCall("query", name, dict(params)))
         self._maybe_fail()
         for seeded in self.queries.get(name, []):
-            if seeded.params is None or all(
-                params.get(k) == v for k, v in seeded.params.items()
-            ):
+            if seeded.params is None or all(params.get(k) == v for k, v in seeded.params.items()):
                 return dict(seeded.payload)
         raise QueryFailed(
             f"fake has no payload seeded for '{name}' with {dict(params)}",
@@ -136,9 +132,7 @@ class FakeGraphRepository(GraphRepository):
         self._maybe_fail()
         return self.vertices.get((vtype, vid))
 
-    async def get_vertices(
-        self, vtype: str, ids: Sequence[str]
-    ) -> dict[str, dict[str, Any]]:
+    async def get_vertices(self, vtype: str, ids: Sequence[str]) -> dict[str, dict[str, Any]]:
         self.calls.append(RecordedCall("get_vertices", vtype, {"ids": list(ids)}))
         self._maybe_fail()
         found: dict[str, dict[str, Any]] = {}

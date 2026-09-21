@@ -538,9 +538,7 @@ class FeatureExtractor:
             return "risk_70_85", "in its second-highest band"
         return "risk_85_100", "in its highest band"
 
-    def _match_flags(
-        self, m_feats: str, ref: str, ids: tuple[str, ...]
-    ) -> list[PostingRequest]:
+    def _match_flags(self, m_feats: str, ref: str, ids: tuple[str, ...]) -> list[PostingRequest]:
         """M1–M9 are unnamed Vesta match flags; the claim says so rather than guessing."""
         if not m_feats:
             return []
@@ -583,7 +581,9 @@ class FeatureExtractor:
                 )
             ]
         return [
-            self._req("dist1_missing", False, "The transaction carries a distance value.", ref, ids),
+            self._req(
+                "dist1_missing", False, "The transaction carries a distance value.", ref, ids
+            ),
             self._req(
                 "dist1_large",
                 dist1 > 100,

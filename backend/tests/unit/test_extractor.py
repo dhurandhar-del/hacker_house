@@ -106,9 +106,7 @@ def test_the_match_flag_family_posts_one_side_only(extractor):
     assert features(any_false).get("m_flags_any_false") is True
     assert "m_flags_all_true" not in features(any_false)
 
-    all_true = FeatureExtractor(extractor.table).from_txn_detail(
-        txn_detail(m_feats="T|T|T"), REF
-    )
+    all_true = FeatureExtractor(extractor.table).from_txn_detail(txn_detail(m_feats="T|T|T"), REF)
     assert features(all_true).get("m_flags_all_true") is True
     assert "m_flags_any_false" not in features(all_true)
 
@@ -127,7 +125,9 @@ def test_a_card_present_transaction_posts_no_device_features(extractor):
     # graph never supplied.
     device = DeviceNovelty.model_validate(
         {
-            "flags": [{"R.txn_id": TXN, "R.device_key": "", "R.device_new": "", "R.proxy_flag": ""}],
+            "flags": [
+                {"R.txn_id": TXN, "R.device_key": "", "R.device_new": "", "R.proxy_flag": ""}
+            ],
             "prior_txns_this_device_on_card": 0,
             "prior_online_txns_on_card": 0,
             "prior_txns_on_card": 980,
@@ -269,7 +269,11 @@ def test_a_generic_device_profile_is_flagged_as_a_browser_class(extractor):
     ring = RingExpansion.model_validate(
         {
             "devices_used": [
-                {"DALL.device_key": "Dc7bc1c5be788", "DALL.label": "Windows | chrome", "DALL.n_cards": 842},
+                {
+                    "DALL.device_key": "Dc7bc1c5be788",
+                    "DALL.label": "Windows | chrome",
+                    "DALL.n_cards": 842,
+                },
                 {"DALL.device_key": "Dabc", "DALL.label": "iPad | safari", "DALL.n_cards": 4},
             ],
             "identifying_devices": [],

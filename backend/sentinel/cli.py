@@ -125,9 +125,7 @@ async def _build_orchestrator(
     memory = CaseMemoryStore(graph=repository, embeddings=embeddings) if write_back else None
     retriever: GraphRagRetriever | None = None
     if retrieval:
-        retriever = GraphRagRetriever(
-            settings=settings, graph=repository, embeddings=embeddings
-        )
+        retriever = GraphRagRetriever(settings=settings, graph=repository, embeddings=embeddings)
         # Warmed once here, not lazily inside the first case: 5,611 vectors is
         # a few seconds, and charging it to case one would make that one case's
         # `latency_s` a lie about the agent.
@@ -208,7 +206,10 @@ async def cmd_validate(args: argparse.Namespace, settings: Settings) -> int:
                 print(f"       warning {finding}")
             failures += 0 if report.ok else 1
 
-    print(f"\n{len(paths) - failures}/{len(paths)} valid" + ("" if args.no_graph else " (with graph checks)"))
+    print(
+        f"\n{len(paths) - failures}/{len(paths)} valid"
+        + ("" if args.no_graph else " (with graph checks)")
+    )
     return EXIT_OK if failures == 0 else EXIT_INVALID
 
 
@@ -238,7 +239,9 @@ async def cmd_doctor(_: argparse.Namespace, settings: Settings) -> int:
                 TigerGraphRestRepository.from_settings(settings)
             )
             counts = await repository.stat_vertex_counts()
-            lines.append((counts.get("Transaction", 0) > 0, f"graph reachable, {len(counts)} vertex types"))
+            lines.append(
+                (counts.get("Transaction", 0) > 0, f"graph reachable, {len(counts)} vertex types")
+            )
             for vtype in ("Transaction", "Card", "ClosedCase", "Alert", "FraudCase", "PolicyDoc"):
                 count = counts.get(vtype, 0)
                 expected = vtype not in {"PolicyDoc"}
@@ -281,7 +284,9 @@ async def cmd_ingest(args: argparse.Namespace, settings: Settings) -> int:
 
 def _print_report(report: BatchReport, run_dir: Path) -> None:
     print()
-    print(f"{'case':10} {'verdict':11} {'p':>7} {'pattern':28} {'sar':4} {'calls':>5} {'tokens':>7}  actions")
+    print(
+        f"{'case':10} {'verdict':11} {'p':>7} {'pattern':28} {'sar':4} {'calls':>5} {'tokens':>7}  actions"
+    )
     print("─" * 118)
     for outcome in report.outcomes:
         answer = outcome.answer
