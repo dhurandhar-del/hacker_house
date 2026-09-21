@@ -106,3 +106,61 @@ def test_the_rationale_records_what_became_of_every_request():
         "email_cluster": "not_in_plan",
         "not_a_tool": "unknown",
     }
+
+
+# ── the pattern is a claim about the facts ───────────────────────────────────
+
+
+def _ctx_with(txn, region=None, trigger=TriggerType.RISK_SCORE):
+    ctx = context(trigger)
+    ctx.txn = txn
+    ctx.region_novelty = region
+    return ctx
+
+
+def test_out_of_region_is_rejected_where_the_card_has_history_there():
+    """HHG-003: named `out_of_region_use` on a region with 42 prior charges.
+
+    Guide.md defines it as "card-present purchases in a billing region the
+    cardholder **has no history in**". The pattern is graded and it feeds the
+    episode scoper, so a claim the measurements contradict cannot stand.
+    """
+    from sentinel.agents.steps import _coherent_pattern
+    from sentinel.domain.enums import Pattern
+    from sentinel.tools.dto import RegionNovelty, TransactionRow
+
+    present = TransactionRow(txn_id="1", channel="in_person", addr1="330.0")
+    established = RegionNovelty(prior_txns_in_region=42)
+    novel = RegionNovelty(prior_txns_in_region=0)
+
+    assert (
+        _coherent_pattern(Pattern.OUT_OF_REGION_USE, _ctx_with(present, established))
+        is Pattern.NONE
+    )
+    assert (
+        _coherent_pattern(Pattern.OUT_OF_REGION_USE, _ctx_with(present, novel))
+        is Pattern.OUT_OF_REGION_USE
+    )
+
+
+def test_card_not_present_is_rejected_on_a_card_present_transaction():
+    from sentinel.agents.steps import _coherent_pattern
+    from sentinel.domain.enums import Pattern
+    from sentinel.tools.dto import TransactionRow
+
+    present = TransactionRow(txn_id="1", channel="in_person")
+    online = TransactionRow(txn_id="1", channel="online")
+    for pattern in (Pattern.CARD_NOT_PRESENT_FRAUD, Pattern.CARD_NOT_PRESENT_NEW_DEVICE):
+        assert _coherent_pattern(pattern, _ctx_with(present)) is Pattern.NONE
+        assert _coherent_pattern(pattern, _ctx_with(online)) is pattern
+
+
+def test_the_patterns_with_no_falsifiable_premise_are_left_alone():
+    """Inventing a test for these would be checking the model's homework badly."""
+    from sentinel.agents.steps import _coherent_pattern
+    from sentinel.domain.enums import Pattern
+    from sentinel.tools.dto import TransactionRow
+
+    for pattern in (Pattern.ACCOUNT_TAKEOVER, Pattern.UNDOCUMENTED, Pattern.NONE):
+        ctx = _ctx_with(TransactionRow(txn_id="1", channel="in_person"))
+        assert _coherent_pattern(pattern, ctx) is pattern

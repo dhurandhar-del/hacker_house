@@ -213,6 +213,7 @@ class PolicyEngine:
         self._r6_shared_origin(recs, state)
         self._r9_undocumented(recs, state)
         self._case_threshold(recs, state)
+        self._fraud_without_a_cardholder(recs, state)
         self._r8_uncertain_and_exposed(recs, state)
         self._sar_filing(recs, state, sar)
         self._r10_block_all_cards(recs, state)
@@ -368,6 +369,39 @@ class PolicyEngine:
         recs.add(
             Action.CLOSE_NO_FRAUD,
             f"assessed probability {state.fraud_probability:.2f} with no supporting evidence found",
+            state,
+        )
+
+    def _fraud_without_a_cardholder(self, recs: RecommendationSet, state: CaseState) -> None:
+        """A fraud verdict the cardholder has not been asked about yet.
+
+        R1 to R10 cover the shapes the policy names, and one shape falls
+        between them: the graph says fraud, the cardholder has said nothing,
+        and no documented pattern matched. Nothing then adds an action, so
+        §3a's `CREATE_CASE` stood alone — eight of the twenty benchmark cases
+        came back with a `fraud` verdict above 0.88 whose entire recommendation
+        was to open a case. That is not a next best action; it is a filing
+        cabinet.
+
+        Neither of the two actions added here blocks anything, so this cannot
+        become a route to over-blocking: `BLOCK_CARD` still waits for R2's
+        denial or R5's cleared purchase. Both are `auto`, both are in §1's
+        table, and both are what §5 and §3b describe — ask the cardholder,
+        which the agent may do without approval, and contain the card while
+        waiting, which costs the cardholder nothing.
+        """
+        if state.verdict is not Verdict.FRAUD or state.has_customer_response:
+            return
+        recs.add(
+            Action.VERIFY_WITH_CUSTOMER,
+            f"the evidence puts this at {state.fraud_probability:.2f} and the cardholder "
+            "has not been asked; R2 and R3 both turn on their answer",
+            state,
+        )
+        recs.add(
+            Action.MONITOR_CARD,
+            f"raise sensitivity while the cardholder is asked, at assessed probability "
+            f"{state.fraud_probability:.2f}",
             state,
         )
 

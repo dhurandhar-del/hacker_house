@@ -373,10 +373,10 @@ class AssessStep(InvestigationStep):
 
     async def run(self, ctx: InvestigationContext) -> None:
         assessment = await self._assessor.run(ctx)
-        ctx.pattern = assessment.pattern
+        ctx.pattern = _coherent_pattern(assessment.pattern, ctx)
         ctx.narration.summary = assessment.summary
         ctx.narration.pattern_description = (
-            assessment.pattern_description if assessment.pattern is Pattern.UNDOCUMENTED else ""
+            assessment.pattern_description if ctx.pattern is Pattern.UNDOCUMENTED else ""
         )
 
         exoneration = await self._defence.run(ctx)
@@ -427,32 +427,43 @@ class RequestEvidenceStep(InvestigationStep):
         # "before I asked" and the ledger is about to move.
         ctx.pre_request = ctx.ledger.snapshot()
 
-        # A step-up challenge only tells you something when there is a device to
-        # challenge. Seven of the twenty alerts carry no identity record at all,
-        # and asking for a step-up there produces a response that can only be
-        # "we could not evaluate it" — so ask the cardholder instead, which on
-        # those cases is the question that can actually move the number.
-        device_observable = ctx.device_novelty is not None and ctx.device_novelty.observable
-        request_type = (
-            RequestType.STEP_UP_AUTH
-            if (
-                ctx.txn is not None
-                and ctx.txn.channel == "online"
-                and device_observable
-                and ctx.ledger.p >= 0.5
-            )
-            else RequestType.CUSTOMER_VALIDATION
-        )
+        # Which question is worth asking, and of whom.
+        #
+        # A step-up challenge only means something when there is a device to
+        # challenge; seven of the twenty alerts carry no identity record at
+        # all. And on a `customer_report` alert the cardholder has already
+        # answered "did you make this" — asking them to validate a charge they
+        # just reported is not a real action, so the step-up is the only
+        # question left for them.
+        if _step_up_is_answerable(ctx) and (ctx.already_denied or ctx.ledger.p >= 0.5):
+            request_type = RequestType.STEP_UP_AUTH
+        elif ctx.already_denied:
+            # Policy 5's third option. The cardholder has already answered the
+            # only question they can answer and there is no device to
+            # challenge, so the party with something left to add is an analyst.
+            request_type = RequestType.ANALYST_INFO
+        else:
+            request_type = RequestType.CUSTOMER_VALIDATION
         simulator = EvidenceSimulator(
             recurring=ctx.facts.recurring,
             region=ctx.region_novelty,
             history=ctx.facts.history,
             device=ctx.device_novelty,
             refs=dict(ctx.refs),
+            already_denied=ctx.already_denied,
         )
         response = simulator.simulate(request_type)
         ctx.response = response
-        ctx.customer_response = response.branch
+        # R2, R3 and R4 turn on *what the cardholder said*. An analyst reading
+        # the same history and concluding it looks like theirs is real evidence
+        # — it posts to the ledger below — but it is not the cardholder
+        # speaking, and routing it through `customer_response` produced a case
+        # file whose recommendation read "R3: cardholder confirms the
+        # transaction" beside an `evidence_requests` entry that said an analyst
+        # had reviewed it. HHG-009 came out recommending CREATE_CASE and
+        # CLOSE_NO_FRAUD together on the strength of it.
+        if request_type is not RequestType.ANALYST_INFO:
+            ctx.customer_response = response.branch
         ctx.evidence_request_step = ctx.counter.current
         ctx.narration.assumed_response = response.assumed_response
 
@@ -757,6 +768,65 @@ def _fit_narrative(narrative: str) -> str:
 #: Greedy split on the same boundary :func:`count_sentences` counts, so trimming
 #: and counting can never disagree about where a sentence ends.
 _SENTENCES = re.compile(r"[^.!?]*[.!?]+(?=\s+[\"\u2018\u201c(\[]?[A-Z0-9]|\s*$)|[^.!?]+$")
+
+
+#: What each documented pattern *requires* of the flagged transaction, taken
+#: from Guide.md's own definitions. A pattern is a claim about the facts, and a
+#: claim the facts contradict is not a judgement call.
+def _coherent_pattern(named: Pattern, ctx: InvestigationContext) -> Pattern:
+    """Reject a named pattern the measurements rule out.
+
+    The model names the pattern, which is the right division of labour — it is
+    reading typology prose against a case. But it named `out_of_region_use` on
+    a card with 42 prior transactions in that very region, and the pattern is
+    graded and feeds the episode scoper. Each test below is a direct reading of
+    Guide.md's definition, and each rests on a number the sweep measured:
+
+    - *Card testing* — "three or more tiny online authorizations, often under
+      $5, then a larger purchase. **Confirmed by the sequence itself.**"
+    - *Card-not-present fraud* — "The number is used **online** without the card."
+    - *Out-of-region use* — "**Card-present** purchases in a billing region the
+      cardholder **has no history in**."
+
+    `account_takeover` and `undocumented` are not tested: neither has a
+    falsifiable premise in the measurements, and inventing one would be this
+    function doing the model's job rather than checking it.
+    """
+    txn = ctx.txn
+    if txn is None or named in (Pattern.NONE, Pattern.UNDOCUMENTED, Pattern.ACCOUNT_TAKEOVER):
+        return named
+
+    online = txn.channel == "online"
+    contradiction = ""
+    if named is Pattern.CARD_TESTING and not _state(ctx).card_testing_sequence:
+        contradiction = "no sequence of small authorisations precedes the flagged transaction"
+    elif named in (Pattern.CARD_NOT_PRESENT_FRAUD, Pattern.CARD_NOT_PRESENT_NEW_DEVICE):
+        if not online:
+            contradiction = "the transaction was card-present"
+    elif named is Pattern.OUT_OF_REGION_USE:
+        region = ctx.region_novelty
+        if online:
+            contradiction = "the transaction was online, not card-present"
+        elif region is not None and region.prior_txns_in_region > 0:
+            contradiction = (
+                f"the card has {region.prior_txns_in_region} prior transactions in "
+                f"billing region {txn.addr1}"
+            )
+
+    if not contradiction:
+        return named
+    logger.info("%s: pattern '%s' rejected — %s", ctx.alert.alert_id, named.value, contradiction)
+    ctx.emitter.emit(
+        "pattern.rejected",
+        {"named": named.value, "contradiction": contradiction, "accepted": Pattern.NONE.value},
+        step=ctx.counter.current,
+    )
+    return Pattern.NONE
+
+
+def _step_up_is_answerable(ctx: InvestigationContext) -> bool:
+    """Whether there is a device to put a one-time passcode in front of."""
+    return ctx.device_novelty is not None and ctx.device_novelty.observable
 
 
 def _record_rules(ctx: InvestigationContext) -> None:

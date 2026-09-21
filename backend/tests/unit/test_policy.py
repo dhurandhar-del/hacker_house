@@ -565,3 +565,60 @@ def test_the_same_state_always_decides_the_same_way():
     first = [r.as_dict() for r in ENGINE.decide(state)]
     second = [r.as_dict() for r in ENGINE.decide(state)]
     assert first == second
+
+
+def test_a_fraud_verdict_the_cardholder_has_not_been_asked_about_gets_an_action():
+    """R1-R10 leave one shape uncovered, and it is a common one.
+
+    The graph says fraud, the cardholder has said nothing, no documented
+    pattern matched. Nothing then adds an action and §3a's CREATE_CASE stands
+    alone — eight of the twenty benchmark cases came back with a fraud verdict
+    above 0.88 whose entire recommendation was to open a case.
+    """
+    state = CaseState(
+        fraud_probability=0.91,
+        verdict="fraud",
+        exposure_usd=240.0,
+        independent_signals=3,
+        trigger_type="risk_score",
+    )
+    actions = {rec.action for rec in ENGINE.decide(state)}
+    assert Action.CREATE_CASE in actions
+    assert Action.VERIFY_WITH_CUSTOMER in actions
+    assert Action.MONITOR_CARD in actions
+    assert Action.BLOCK_CARD not in actions, "no block without R2's denial or R5"
+
+
+def test_it_does_not_fire_once_the_cardholder_has_answered():
+    for response in ("denied", "confirmed", "no_reply"):
+        state = CaseState(
+            fraud_probability=0.91,
+            verdict="fraud",
+            exposure_usd=240.0,
+            independent_signals=3,
+            customer_response=response,
+            response_requested=True,
+        )
+        reasons = " ".join(rec.reason for rec in ENGINE.decide(state))
+        assert "has not been asked" not in reasons, response
+
+
+def test_r3_needs_the_cardholder_not_an_analyst():
+    """R2, R3 and R4 turn on what the *cardholder* said.
+
+    HHG-009 came out recommending CREATE_CASE and CLOSE_NO_FRAUD together: the
+    cardholder had reported the charge, an analyst reviewed the history and
+    found it consistent with their own pattern, and that opinion was routed
+    through `customer_response` where R3 read it as "cardholder confirms the
+    transaction". The analyst's read is real evidence and still moves the
+    ledger; it is not the cardholder speaking.
+    """
+    from_the_cardholder = CaseState(
+        fraud_probability=0.4,
+        customer_response="confirmed",
+        response_requested=True,
+    )
+    assert Action.CLOSE_NO_FRAUD in {r.action for r in ENGINE.decide(from_the_cardholder)}
+
+    from_an_analyst = CaseState(fraud_probability=0.4, customer_response=None)
+    assert Action.CLOSE_NO_FRAUD not in {r.action for r in ENGINE.decide(from_an_analyst)}

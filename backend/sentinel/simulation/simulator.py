@@ -76,6 +76,11 @@ class EvidenceSimulator:
     history: CustomerCaseHistory | None = None
     device: DeviceNovelty | None = None
     refs: dict[str, str] = field(default_factory=dict)
+    #: True when the alert itself is the cardholder saying "I never made this".
+    #: They cannot then confirm the charge when asked to validate it — a
+    #: simulator that lets them is writing a reply the cardholder would not
+    #: give, on the one field the brief asks us to state an assumption for.
+    already_denied: bool = False
 
     def simulate(self, request_type: RequestType) -> SimulatedResponse:
         if request_type is RequestType.STEP_UP_AUTH:
@@ -92,27 +97,51 @@ class EvidenceSimulator:
         # subscription is a real case. Neither wins, and that is the honest answer.
         if confirm_basis and deny_basis:
             return self._no_reply(request_type, confirm_basis + deny_basis, contested=True)
+        analyst = request_type is RequestType.ANALYST_INFO
         if confirm_basis:
+            if self.already_denied and not analyst:
+                # The cardholder opened this case saying they did not make the
+                # purchase. They cannot then confirm it. Where the facts say
+                # otherwise the honest record is a contest, not a change of
+                # story — and a contest is exactly what R7 exists for.
+                return self._no_reply(request_type, confirm_basis, contested=True)
             return SimulatedResponse(
                 request_type=request_type,
                 branch=CustomerResponse.CONFIRMED,
                 assumed_response=(
-                    "Customer confirms they made the transaction and recognises the charge."
+                    "Analyst review finds the charge consistent with the cardholder's own "
+                    "established pattern on this card."
+                    if analyst
+                    else "Customer confirms they made the transaction and recognises the charge."
                 ),
                 assumption_basis=confirm_basis,
                 log_lr=CONFIRMATION_LOG_LR,
-                claim=("The cardholder confirmed the transaction when asked to validate it."),
+                claim=(
+                    "An analyst reviewing the card's history found the charge consistent "
+                    "with the cardholder's own established pattern."
+                    if analyst
+                    else "The cardholder confirmed the transaction when asked to validate it."
+                ),
             )
         if deny_basis:
             return SimulatedResponse(
                 request_type=request_type,
                 branch=CustomerResponse.DENIED,
                 assumed_response=(
-                    "Customer states they did not make this transaction and still holds the card."
+                    "Analyst review finds nothing in the card's history that accounts for "
+                    "this transaction."
+                    if analyst
+                    else "Customer states they did not make this transaction and still "
+                    "holds the card."
                 ),
                 assumption_basis=deny_basis,
                 log_lr=DENIAL_LOG_LR,
-                claim="The cardholder denied the transaction when asked to validate it.",
+                claim=(
+                    "An analyst reviewing the card's history found nothing that accounts "
+                    "for this transaction."
+                    if analyst
+                    else "The cardholder denied the transaction when asked to validate it."
+                ),
             )
         return self._no_reply(request_type, (), contested=False)
 

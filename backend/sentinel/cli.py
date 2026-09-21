@@ -19,6 +19,7 @@ import logging
 import sys
 from collections.abc import Sequence
 from contextlib import AsyncExitStack
+from datetime import datetime
 from pathlib import Path
 
 from sentinel.agents.orchestrator import SentinelOrchestrator
@@ -101,6 +102,17 @@ def build_parser() -> argparse.ArgumentParser:
     ingest.add_argument("--limit", type=int, default=0, help="stop after N closed cases (0 = all)")
     ingest.add_argument(
         "--force", action="store_true", help="re-embed rows whose fingerprint already matches"
+    )
+
+    explore = sub.add_parser(
+        "explore", help="questions the twenty do not ask; output goes to exploration/"
+    )
+    explore.add_argument("what", choices=("rings",), help="which sweep to run")
+    explore.add_argument(
+        "--max-device-cards",
+        type=int,
+        default=None,
+        help="profiles above this are browser configurations, not devices (default 20)",
     )
 
     return parser
@@ -279,6 +291,26 @@ async def cmd_ingest(args: argparse.Namespace, settings: Settings) -> int:
     return EXIT_OK
 
 
+async def cmd_explore(args: argparse.Namespace, settings: Settings) -> int:
+    from sentinel.exploration.rings import MAX_DEVICE_CARDS, RingExplorer, write_report
+
+    alerts = CasePackLoader(settings.case_pack_path).load()
+    async with AsyncExitStack() as stack:
+        repository = await stack.enter_async_context(
+            TigerGraphRestRepository.from_settings(settings)
+        )
+        explorer = RingExplorer(
+            graph=repository,
+            max_device_cards=args.max_device_cards or MAX_DEVICE_CARDS,
+        )
+        report = await explorer.explore(alerts)
+
+    json_path, md_path = write_report(report, settings.exploration_dir, datetime.now())
+    print(report.as_markdown())
+    print(f"\nwritten to {json_path} and {md_path}")
+    return EXIT_OK
+
+
 # ── output ───────────────────────────────────────────────────────────────────
 
 
@@ -337,6 +369,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "validate": cmd_validate,
         "doctor": cmd_doctor,
         "ingest": cmd_ingest,
+        "explore": cmd_explore,
     }
     try:
         settings = get_settings()

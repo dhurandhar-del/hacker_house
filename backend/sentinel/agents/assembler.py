@@ -23,7 +23,7 @@ from sentinel.domain.answer import (
     NextBestActions,
     SarReport,
 )
-from sentinel.domain.enums import Action, CaseStatus, EvidenceSource, Verdict
+from sentinel.domain.enums import Action, CaseStatus, EvidenceSource, Pattern, Verdict
 from sentinel.policy.engine import cited_rules
 from sentinel.tools.refs import EvidenceRef
 
@@ -46,18 +46,25 @@ class AnswerAssembler:
         exposure = episode.exposure_usd if episode else 0.0
         first = episode.first_suspicious_txn_id if episode else ""
 
-        # A legitimate verdict forces an empty episode, zero exposure and no
-        # report. The scoper already enforces the first two; this is the second
-        # gate, because the contract is checked on the file, not on the object.
+        # A legitimate verdict forces an empty episode, zero exposure, no
+        # report — and no pattern. The scoper already enforces the first two;
+        # this is the second gate, because the contract is checked on the file,
+        # not on the object. `pattern` is "the fraud pattern you identified",
+        # so naming one on a case just concluded legitimate contradicts the
+        # verdict beside it. The pattern still steers the investigation; it is
+        # only the *reported* value that follows the conclusion.
+        pattern = ctx.pattern
+        description = ctx.narration.pattern_description
         if ctx.verdict is Verdict.LEGITIMATE:
             affected, exposure, first = [], 0.0, ""
+            pattern, description = Pattern.NONE, ""
 
         case = Case(
             status=self._status(ctx),
             verdict=ctx.verdict,
             fraud_probability=round(ctx.ledger.p, 4),
-            pattern=ctx.pattern,
-            pattern_description=ctx.narration.pattern_description,
+            pattern=pattern,
+            pattern_description=description,
             affected_txn_ids=affected,
             first_suspicious_txn_id=first,
             connected_card_ids=list(ctx.connected_card_ids),

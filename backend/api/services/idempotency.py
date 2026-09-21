@@ -63,9 +63,7 @@ class IdempotencyService:
         )
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
-    async def reserve(
-        self, key: str, scope: str, request_hash: str
-    ) -> IdempotencyRecord | None:
+    async def reserve(self, key: str, scope: str, request_hash: str) -> IdempotencyRecord | None:
         """Claim the key, or hand back the finished response to replay.
 
         ``None`` means the caller owns the key and should do the work.
@@ -132,9 +130,7 @@ class IdempotencyService:
         async with self._db.session() as session:
             return await session.get(IdempotencyRecord, (key, scope))
 
-    async def _existing(
-        self, key: str, scope: str, request_hash: str
-    ) -> IdempotencyRecord:
+    async def _existing(self, key: str, scope: str, request_hash: str) -> IdempotencyRecord:
         async with self._db.session() as session:
             record = await session.scalar(
                 select(IdempotencyRecord).where(

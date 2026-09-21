@@ -56,7 +56,12 @@ logger = logging.getLogger(__name__)
 
 #: What to do when the recomputed route is not ``auto``. The default enqueues
 #: an approval; ``reject`` is for a caller that only wants to know.
-DenialPolicy = Literal["approve", "reject"]
+#: What to do when the route needs an approval this principal cannot give.
+#: The spelling is the wire's, from `api.schemas.DenialPolicy` — "enqueue"
+#: because that is what happens, and because a service and a schema that
+#: disagree about the value of a field produce a 403 with no approval in it
+#: and no error anywhere.
+DenialPolicy = Literal["enqueue", "reject"]
 
 #: The idempotency namespace for ``POST /api/actions/execute``. Scoping keys by
 #: endpoint means a console that reuses "block-HHG-017" for a different call
@@ -68,7 +73,7 @@ EXECUTE_SCOPE = "actions:execute"
 _CASE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,31}$")
 
 _PHASES: tuple[Phase, ...] = ("initial", "final")
-_DENIAL_POLICIES: tuple[DenialPolicy, ...] = ("approve", "reject")
+_DENIAL_POLICIES: tuple[DenialPolicy, ...] = ("enqueue", "reject")
 
 
 def parse_phase(value: str | None) -> Phase:
@@ -76,7 +81,7 @@ def parse_phase(value: str | None) -> Phase:
     if value is None or value == "":
         return "final"
     if value in _PHASES:
-        return value  # type: ignore[return-value]  # narrowed by the membership test
+        return value
     raise ApiError(
         f"phase '{value}' is not one of {', '.join(_PHASES)}",
         code="invalid_phase",
@@ -86,11 +91,11 @@ def parse_phase(value: str | None) -> Phase:
 
 
 def parse_on_denied(value: str | None) -> DenialPolicy:
-    """``"approve"`` by default — the behaviour the exit test depends on."""
+    """``"enqueue"`` by default — the behaviour the exit test depends on."""
     if value is None or value == "":
-        return "approve"
+        return "enqueue"
     if value in _DENIAL_POLICIES:
-        return value  # type: ignore[return-value]  # narrowed by the membership test
+        return value
     raise ApiError(
         f"on_denied '{value}' is not one of {', '.join(_DENIAL_POLICIES)}",
         code="invalid_on_denied",
@@ -159,6 +164,25 @@ def _read_text(path: Path) -> str | None:
     return path.read_text(encoding="utf-8")
 
 
+async def require_answer(answers: AnswerSource, case_id: str) -> AnswerFile:
+    """The case's answer file, or a 404 naming the case that has none.
+
+    Every route recomputation starts here, because exposure comes from the
+    answer and nowhere else. A case with no answer yet therefore has no
+    executable actions — rather than an exposure of zero, which would quietly
+    route ``BLOCK_CARD`` to L1 when it belongs at L2.
+    """
+    answer = await answers.load(case_id)
+    if answer is None:
+        raise ApiError(
+            f"case '{case_id}' has no answer file yet, so it has no actions to execute",
+            code="answer_not_written",
+            status=404,
+            case_id=case_id,
+        )
+    return answer
+
+
 class ApprovalQueue(Protocol):
     """The half of ``ApprovalService`` this module needs.
 
@@ -191,7 +215,7 @@ class ActionRequest:
     action: Action
     phase: Phase = "final"
     payload: Mapping[str, Any] = field(default_factory=dict)
-    on_denied: DenialPolicy = "approve"
+    on_denied: DenialPolicy = "enqueue"
     idempotency_key: str | None = None
     run_id: str | None = None
     request_id: str = ""
@@ -364,21 +388,8 @@ class ActionExecutionService:
     # ── reads ────────────────────────────────────────────────────────────────
 
     async def answer_for(self, case_id: str) -> AnswerFile:
-        """The case's answer file, or a 404 that says which one is missing.
-
-        Every action reads its exposure here, so a case with no answer yet has
-        no executable actions — rather than an exposure of zero, which would
-        quietly route ``BLOCK_CARD`` to L1 instead of L2.
-        """
-        answer = await self._answers.load(case_id)
-        if answer is None:
-            raise ApiError(
-                f"case '{case_id}' has no answer file yet, so it has no actions to execute",
-                code="answer_not_written",
-                status=404,
-                case_id=case_id,
-            )
-        return answer
+        """The case's answer file, or a 404 that says which one is missing."""
+        return await require_answer(self._answers, case_id)
 
     async def plan(
         self, case_id: str, principal: Principal, phase: Phase | None = None
@@ -433,9 +444,7 @@ class ActionExecutionService:
 
     # ── the path one attempt takes ───────────────────────────────────────────
 
-    async def _execute_once(
-        self, request: ActionRequest, principal: Principal
-    ) -> ActionExecution:
+    async def _execute_once(self, request: ActionRequest, principal: Principal) -> ActionExecution:
         answer = await self.answer_for(request.case_id)
         exposure = answer.case.exposure_usd
         route = self._permissions.route_of(request.action, exposure)
@@ -520,7 +529,7 @@ class ActionExecutionService:
         single click.
         """
         approval: Approval | None = None
-        if request.on_denied == "approve":
+        if request.on_denied == "enqueue":
             approval = await self._approvals.enqueue(
                 case_id=request.case_id,
                 action=request.action,
@@ -569,9 +578,7 @@ class ActionExecutionService:
         answerable from the log, which is the point of recording the retry at
         all.
         """
-        execution = (
-            await self.execution(stored.execution_id) if stored.execution_id else None
-        )
+        execution = await self.execution(stored.execution_id) if stored.execution_id else None
         if execution is None:
             raise conflict(
                 f"idempotency key '{request.idempotency_key}' has a stored response but "

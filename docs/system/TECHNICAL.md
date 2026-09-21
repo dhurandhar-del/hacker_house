@@ -180,26 +180,21 @@ EOF
 `requirements.txt`, no `pyproject.toml` — and no virtualenv. Creating both is task B1.
 
 ```bash
-# 1. Python environment
-cd /Users/subhashbishnoi/hacker_house
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e "backend[dev]"          # after B1 lands
-# interim, until pyproject exists:
-pip install pyTigerGraph duckdb pandas python-dotenv pytest openai pydantic \
-            pydantic-settings fastapi uvicorn httpx sqlalchemy aiosqlite numpy
+# 1. Python environment — 3.12; uv is optional but fast
+uv venv --python 3.12 .venv
+VIRTUAL_ENV=.venv uv pip install -e "backend[dev,scripts]"
+#   or: python3.12 -m venv .venv && .venv/bin/pip install -e "backend[dev,scripts]"
 
 # 2. Credentials
 cp .env.example .env                   # fill TG_HOST, TG_SECRET, OPENAI_API_KEY,
                                        # OPENAI_MODEL, OPENAI_EMBEDDING_MODEL
 
-# 3. Verify the graph is reachable (the workspace auto-stops; first call takes ~45 s)
-python -c "from sentinel import config as cfg; c = cfg.connect(); \
-           print('Transaction:', c.getVertexCount('Transaction'))"
-# expect: Transaction: 590742
+# 3. Check every assumption a run makes, and see which one is false
+.venv/bin/python -m sentinel doctor
+# the workspace auto-stops; the first call takes ~45 s and the repository retries
 
 # 4. Backend
-uvicorn api.main:app --reload --port 8000 --app-dir backend
+.venv/bin/python -m uvicorn api.main:app --reload --port 8000 --app-dir backend
 
 # 5. Frontend
 cd frontend && npm install && npm run dev      # http://localhost:3000
@@ -261,14 +256,15 @@ because the parser rejects comments containing a quote.
 ### 5.4 GraphRAG ingestion
 
 ```bash
-python -m sentinel.rag.cli ingest --policy            # ~45 chunks from Guide.md, seconds
-python -m sentinel.rag.cli ingest --regulatory        # fetch + extract + embed, ~2 min
-python -m sentinel.rag.cli ingest --closed-cases      # 5,565 rows, ~3–5 min
-python -m sentinel.rag.cli status                     # coverage report
+python -m sentinel ingest --what policy      # 46 chunks parsed out of Guide.md, seconds
+python -m sentinel ingest --what cases       # 5,565 ClosedCase.emb, ~3 min
+python -m sentinel ingest --what all         # both; idempotent, so a re-run is free
+python -m sentinel ingest --what all --force # re-embed rows that are already current
 ```
 
 Cost and volume: closed-case notes are 133–437 chars (median 335), roughly 500 k tokens total —
-about **$0.01** on `text-embedding-3-small`. At `dimensions=256` the write-back is about **25 MB**
+about **$0.01** on `text-embedding-3-large` truncated to 256 dimensions, which retains more
+quality than `-3-small` at the same width. At `dimensions=256` the write-back is about **25 MB**
 of JSON, batched 200 vertices per POST; at 1,536 it would be ~130 MB. The ingest is idempotent, so
 an interrupted run resumes.
 
@@ -278,22 +274,31 @@ Verify:
 curl -s -X POST "$TG_HOST/restpp/builtins/$TG_GRAPH" \
   -H "Authorization: Bearer $TG_API_TOKEN" \
   -d '{"function":"stat_vertex_number","type":"PolicyDoc"}'
-# expect a count > 0 — it is 0 today
+# expect 46
 ```
 
 ### 5.5 Running investigations
 
 ```bash
-python -m sentinel.cli run --case HHG-003                   # one case
-python -m sentinel.cli run --all --order chronological      # the benchmark, memory compounds
-python -m eval.validate                                      # 20 files, shape + graph
-python -m eval.validate --no-graph                           # shape only, no credentials needed
-python -m sentinel.cli report                                # verdict mix, block rate, histogram
-python -m sentinel.cli sync-cases                            # write answer files to the graph
+python -m sentinel run --case HHG-003            # one case, ~20 s
+python -m sentinel run --all                     # the benchmark, ~6 min
+python -m sentinel run --all --out /tmp/rehearse # a rehearsal that does not touch cases/
+python -m sentinel run --case HHG-003 --no-write # skip the graph write-back
+python -m sentinel validate                      # 20 files, shape + policy + graph ids
+python -m sentinel validate --no-graph           # shape only, no credentials needed
+python -m sentinel explore rings                 # the two-hop sweep, into exploration/
+python -m eval.validate                          # the organiser-facing mirror of the same contract
 ```
 
-`--order chronological` sorts by `Alert.opened_at`, so HHG-017 (2016-11-12) runs first and HHG-004
-and HHG-011 (2016-12-29) run last. Each case's `FraudCase` is written before the next starts.
+The batch always runs in `Alert.opened_at` order, so HHG-017 (2016-11-12) runs first and HHG-004
+and HHG-011 (2016-12-29) run last. Each case's `FraudCase` is written before the next starts,
+which is what lets a late case retrieve an early one. The order is not a flag: memory that
+compounds backwards is a leak, so there is nothing to turn off.
+
+`run --all` prints the batch report and writes it to `runs/<run_id>/report.json` with the verdict
+mix, the block and SAR rates, and a warning line for each of the four ratios that is out of band.
+The per-case event journal lands in `runs/<run_id>/trace/<case>.jsonl`, and an answer that fails
+validation goes to `runs/<run_id>/quarantine/` with its findings rather than into `cases/`.
 
 ### 5.6 Tests
 
@@ -438,7 +443,7 @@ Over raw REST a `VERTEX<T>` parameter takes a **bare id**. Through pyTigerGraph 
 ### 8.1 MCP
 
 ```bash
-pip install tigergraph-mcp                 # NOT on PATH today — the server fails with ENOENT
+pip install tigergraph-mcp                 # installed; setup_mcp points .mcp.json at the venv binary
 python scripts/setup_mcp.py --refresh      # mint a token into the managed .env block
 python scripts/setup_mcp.py --check        # handshake, tool list, then region_novelty == 42
 ```

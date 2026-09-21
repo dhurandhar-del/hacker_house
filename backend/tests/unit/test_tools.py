@@ -283,3 +283,50 @@ def test_a_step_up_still_discriminates_when_the_device_is_observable():
     failed = EvidenceSimulator(device=unknown).simulate(RequestType.STEP_UP_AUTH)
     assert passed.branch is CustomerResponse.STEP_UP_PASSED and passed.log_lr < 0
     assert failed.branch is CustomerResponse.STEP_UP_FAILED and failed.log_lr > 0
+
+
+def test_a_cardholder_who_reported_the_charge_cannot_then_confirm_it():
+    """The alert on eight of the twenty *is* the cardholder's denial.
+
+    The regression this pins: HHG-009 came back with CREATE_CASE,
+    WARN_CUSTOMER and CLOSE_NO_FRAUD together — open a case and close it as no
+    fraud — because the simulator had the cardholder confirm a charge they had
+    opened the case by disputing. Where the facts say the charge looks like
+    theirs, the honest record is a contest between the facts and the
+    cardholder, which is what R7 is for.
+    """
+    from sentinel.domain.enums import CustomerResponse, RequestType
+    from sentinel.simulation.simulator import EvidenceSimulator
+    from sentinel.tools.dto import RecurringChargeProbe
+
+    recurring = RecurringChargeProbe(matching_charges=53, distinct_months=6)
+    refs = {"recurring_charge_probe": "query:recurring_charge_probe(card_id=C1-K1)"}
+
+    asked_cold = EvidenceSimulator(recurring=recurring, refs=refs).simulate(
+        RequestType.CUSTOMER_VALIDATION
+    )
+    assert asked_cold.branch is CustomerResponse.CONFIRMED
+
+    asked_after_a_report = EvidenceSimulator(
+        recurring=recurring, refs=refs, already_denied=True
+    ).simulate(RequestType.CUSTOMER_VALIDATION)
+    assert asked_after_a_report.branch is CustomerResponse.NO_REPLY
+    assert "contest" in asked_after_a_report.assumed_response.lower() or (
+        asked_after_a_report.log_lr == 0.0
+    )
+
+
+def test_an_analyst_may_read_the_history_the_cardholder_disputes():
+    """Policy 5's third option, and the one left when there is no device."""
+    from sentinel.domain.enums import CustomerResponse, RequestType
+    from sentinel.simulation.simulator import EvidenceSimulator
+    from sentinel.tools.dto import RecurringChargeProbe
+
+    response = EvidenceSimulator(
+        recurring=RecurringChargeProbe(matching_charges=53, distinct_months=6),
+        refs={"recurring_charge_probe": "query:recurring_charge_probe(card_id=C1-K1)"},
+        already_denied=True,
+    ).simulate(RequestType.ANALYST_INFO)
+    assert response.branch is CustomerResponse.CONFIRMED
+    assert "analyst" in response.claim.lower()
+    assert "cardholder confirmed" not in response.claim.lower()

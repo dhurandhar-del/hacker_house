@@ -158,9 +158,14 @@ def _envelope(row: RunEvent) -> SseEnvelope:
     )
 
 
-@dataclass
+@dataclass(eq=False)
 class Subscription:
     """One live listener on one run.
+
+    ``eq=False`` so the dataclass keeps identity hashing: each subscription
+    *is* one connection, two are never interchangeable, and the default
+    ``eq=True`` sets ``__hash__`` to None — which makes the broker's set of
+    subscribers a ``TypeError`` the moment anyone opens a stream.
 
     The queue is bounded. A subscriber that cannot keep up is dropped and told
     to reconnect rather than allowed to grow a queue without limit — a browser

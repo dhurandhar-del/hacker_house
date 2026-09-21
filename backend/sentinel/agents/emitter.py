@@ -24,6 +24,7 @@ EVENT_TYPES: tuple[str, ...] = (
     "tool.called",
     "evidence.posted",
     "retrieval.completed",
+    "pattern.rejected",
     "policy.evaluated",
     "evidence.requested",
     "llm.completed",

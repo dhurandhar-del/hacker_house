@@ -300,3 +300,23 @@ def test_the_token_ceiling_is_per_run_not_per_client():
     meter.charge("gpt-5.4-mini", settings_obj.max_tokens_per_run, 0)
     with pytest.raises(BudgetExceeded):
         guard.check_spend()
+
+
+def test_a_subscription_can_go_in_the_brokers_set():
+    """The broker keeps subscribers in a set, so they have to be hashable.
+
+    A dataclass with the default ``eq=True`` has ``__hash__`` set to None, so
+    every attempt to open an SSE stream raised `TypeError: unhashable type`
+    from inside the response body iterator — after the 200 and the headers had
+    already gone out, which is why it looked like an empty stream rather than
+    an error.
+    """
+    from api.sse.journal import SseBroker
+
+    broker = SseBroker(queue_size=4)
+    first = broker.subscribe("run_1")
+    second = broker.subscribe("run_1")
+    assert broker.listeners("run_1") == 2
+    assert first != second, "two connections are never the same subscription"
+    broker.unsubscribe(first)
+    assert broker.listeners("run_1") == 1

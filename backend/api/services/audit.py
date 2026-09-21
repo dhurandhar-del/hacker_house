@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from datetime import UTC
 from typing import Any, Literal
 
 from sqlalchemy import func, select
@@ -130,9 +131,7 @@ class AuditService:
 
         async with self._db.session() as session:
             total = int(
-                await session.scalar(
-                    select(func.count()).select_from(AuditRow).where(*criteria)
-                )
+                await session.scalar(select(func.count()).select_from(AuditRow).where(*criteria))
                 or 0
             )
             rows = (
@@ -156,9 +155,12 @@ def audit_rows_as_dicts(rows: Sequence[AuditRow]) -> list[dict[str, Any]]:
 
 
 def _row_as_dict(row: AuditRow) -> dict[str, Any]:
+    # SQLite returns a naive datetime even from a timezone-aware column, and a
+    # timestamp with no Z is one the browser reads as local time.
+    at = row.at if row.at.tzinfo else row.at.replace(tzinfo=UTC)
     return {
         "audit_id": row.audit_id,
-        "at": row.at.isoformat().replace("+00:00", "Z"),
+        "at": at.isoformat().replace("+00:00", "Z"),
         "request_id": row.request_id,
         "actor_id": row.actor_id,
         "actor_role": row.actor_role,

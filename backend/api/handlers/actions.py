@@ -365,9 +365,7 @@ class FileReportHandler(ActionHandler):
             "filed_at": _stamp(ctx.at),
             "filed_by": ctx.principal.id,
         }
-        return ActionOutcome(
-            record, f"SAR filed with FinCEN for ${sar.total_amount_usd:,.2f}"
-        )
+        return ActionOutcome(record, f"SAR filed with FinCEN for ${sar.total_amount_usd:,.2f}")
 
 
 class EscalateHandler(ActionHandler):
@@ -460,8 +458,9 @@ class CreateCaseHandler(ActionHandler):
             )
         )
         record = {**result.as_dict(), "case_id": ctx.case_id, "written_at": _stamp(ctx.at)}
+        vertices = "vertex" if result.vertices_upserted == 1 else "vertices"
         summary = (
-            f"FraudCase {result.graph_case_id} written: {result.vertices_upserted} vertex, "
+            f"FraudCase {result.graph_case_id} written: {result.vertices_upserted} {vertices}, "
             f"{result.edges_upserted} edges across {len(result.edge_types)} types"
         )
         # Honest either way: a store in dry run touched no graph, and a row

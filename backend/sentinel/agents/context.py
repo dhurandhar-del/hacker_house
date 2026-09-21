@@ -188,6 +188,11 @@ class InvestigationContext:
         )
 
     @property
+    def already_denied(self) -> bool:
+        """Whether the alert itself is the cardholder disputing the charge."""
+        return self.trigger_response is CustomerResponse.DENIED
+
+    @property
     def effective_response(self) -> CustomerResponse | None:
         """What the cardholder has said, by whatever route."""
         return self.customer_response or self.trigger_response

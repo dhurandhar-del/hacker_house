@@ -51,6 +51,15 @@ JUDGEMENT_CAP_MULTIPLIER = 1.5
 #: How far a group total must have moved for that group to count as support.
 SUPPORT_EPSILON = 0.05
 
+#: The fitted group the model's risk-score bands live in.
+RISK_SCORE_GROUP = "risk_score"
+
+#: The band a model-score alert implies on its own. The 900 cleared alerts in
+#: the closed-case history are 100% at or above 0.70 with a mean of 0.881, so
+#: this is what "the model raised an alert" is worth — and what the trigger
+#: prior has already paid for. See :meth:`EvidenceLedger._already_spent`.
+ALERTING_BAND = "risk_70_85"
+
 
 @dataclass(frozen=True, slots=True)
 class Posting:
@@ -191,7 +200,7 @@ class EvidenceLedger:
             feature=feature,
             present=present,
             lr=lr,
-            log_lr=math.log(lr) * weight,
+            log_lr=(math.log(lr) - self._already_spent(feature, present)) * weight,
             group=self._table.group_of(feature),
             cap=self._group_cap,
             claim=claim,
@@ -230,6 +239,43 @@ class EvidenceLedger:
             source=source,
             entity_ids=entity_ids,
         )
+
+    def _already_spent(self, feature: str, present: bool) -> float:
+        """Log-odds this feature already contributed through the prior.
+
+        One case, and it is the largest single calibration error the benchmark
+        exposed. A ``risk_score`` alert exists *because* the model scored the
+        transaction high. The trigger prior of 0.25 is P(fraud | the model
+        raised this alert) — it has already spent the fact that the score is
+        high. Posting the score band's own likelihood ratio on top counts the
+        same evidence twice, and the ratios are large: 8.22 for the 0.70-0.85
+        band, 18.76 above it.
+
+        Measured: it carried eight of the eleven score-triggered benchmark
+        cases past 0.85 to a ``fraud`` verdict on the strength of the score
+        that raised them, in flat contradiction of Guide.md's own statement
+        that "above 0.7, most flagged transactions turn out to be legitimate".
+
+        The band is not discarded, because *how far above the threshold* a
+        score sits is real information. It is re-centred on the band the alert
+        itself implies. The 900 cleared alerts in the closed-case history are
+        100% at or above 0.70 with a mean of 0.881, so the alerting band is
+        0.70-0.85: a score there now contributes nothing beyond the prior, a
+        score above it still contributes (+0.83), and a score below it argues
+        the model was reaching (-0.41 and -1.20).
+
+        No other trigger is affected. On a customer report or an analyst
+        request the alert did not come from the model, so the model's score is
+        independent information and its full ratio applies. Nor is an *absent*
+        band affected: the prior spent a statement about where the score is,
+        not about where it is not — and the extractor posts exactly one band,
+        present, because the other four are the same fact restated.
+        """
+        if not present or self._trigger_type != TriggerType.RISK_SCORE.value:
+            return 0.0
+        if self._table.fitted_group_of(feature) != RISK_SCORE_GROUP:
+            return 0.0
+        return math.log(self._table.lookup(ALERTING_BAND, present=True))
 
     def _apply(
         self,

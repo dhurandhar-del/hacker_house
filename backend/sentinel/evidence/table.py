@@ -48,6 +48,40 @@ SUPPLEMENTARY_PRIORS: Mapping[str, float] = MappingProxyType(
     {TriggerType.ANALYST_REQUEST.value: 0.50}
 )
 
+#: Features the fit puts in separate groups that are one observation.
+#:
+#: The ledger caps correlated evidence *by group*, on the stated principle that
+#: three phrasings of one finding are not three findings. The fit's own grouping
+#: splits one finding four ways: ``channel_online``, ``dist1_missing``,
+#: ``m_flags_all_true`` and ``device_found`` are not four facts about a
+#: transaction, they are four consequences of it having happened online with an
+#: identity record. Vesta populates the M flags and the device record only for
+#: online transactions, and ``dist1`` is missing precisely when there is no
+#: card-present distance to record.
+#:
+#: Measured over the twenty benchmark cases: those four groups contributed
+#: +1.84 log-odds on every one of the thirteen cases that came back ``fraud``
+#: and -1.45 on every one that came back ``legitimate`` — a 27x swing, applied
+#: identically, for the single fact that a transaction was online. Merged, the
+#: family is capped at the same +-1.2 as any other single observation.
+#:
+#: It lives here rather than in ``elt.json`` because that file is fitted output
+#: that ``python -m eval.fit_elt`` overwrites. The fit produces the ratios; what
+#: counts as one observation is a modelling decision, and this is it.
+CHANNEL_GROUP = "channel"
+
+GROUP_MERGES: Mapping[str, str] = MappingProxyType(
+    {
+        "channel_online": CHANNEL_GROUP,
+        "dist1_missing": CHANNEL_GROUP,
+        "dist1_large": CHANNEL_GROUP,
+        "device_found": CHANNEL_GROUP,
+        "m_flags_all_true": CHANNEL_GROUP,
+        "m_flags_any_false": CHANNEL_GROUP,
+        "match_status_mismatch": CHANNEL_GROUP,
+    }
+)
+
 #: Keys every feature row must carry for the ledger to be able to post it.
 _REQUIRED_FEATURE_KEYS: tuple[str, ...] = ("group", "lr_present", "lr_absent")
 
@@ -147,7 +181,15 @@ class EvidenceLikelihoodTable:
         return float(spec["lr_present" if present else "lr_absent"])
 
     def group_of(self, feature: str) -> str:
-        """The correlated-evidence group the feature belongs to."""
+        """The correlated-evidence group the feature belongs to.
+
+        Not always the group the fit assigned: see :data:`GROUP_MERGES`.
+        """
+        fitted = str(self._spec(feature)["group"])
+        return GROUP_MERGES.get(feature, fitted)
+
+    def fitted_group_of(self, feature: str) -> str:
+        """The group as the fit wrote it, before any merge. For the audit trail."""
         return str(self._spec(feature)["group"])
 
     def has(self, feature: str) -> bool:

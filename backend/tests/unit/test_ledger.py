@@ -327,3 +327,67 @@ def test_a_narrower_cap_on_a_later_posting_cannot_invert_its_sign(table):
     )
     assert second.log_lr >= 0.0, "an incriminating posting moved the probability down"
     assert ledger.group_totals["device"] <= GROUP_CAP * 1.5 + 1e-9
+
+
+# ── the score is not counted twice ───────────────────────────────────────────
+
+
+def test_a_score_alert_does_not_count_its_own_score_twice(table):
+    """The prior for a score alert already says the model flagged it.
+
+    Guide.md: "Above 0.7, most flagged transactions turn out to be
+    legitimate." Posting the 0.70-0.85 band's own LR of 8.22 on top of a prior
+    that exists *because* the score was high carried eight of the eleven
+    score-triggered benchmark cases past 0.85 on the strength of the score that
+    raised them. The band is re-centred on what the alert already implied.
+    """
+    scored = EvidenceLedger(table, TriggerType.RISK_SCORE)
+    posting = scored.post("risk_70_85", True, "the model scored it 0.79", REF, [])
+    assert posting.log_lr == pytest.approx(0.0, abs=1e-9)
+    assert scored.p == pytest.approx(scored.prior, abs=1e-9)
+
+
+def test_a_score_above_the_alerting_band_still_argues_up(table):
+    scored = EvidenceLedger(table, TriggerType.RISK_SCORE)
+    posting = scored.post("risk_85_100", True, "the model scored it 0.95", REF, [])
+    assert posting.log_lr > 0
+    assert scored.p > scored.prior
+
+
+def test_a_score_below_the_alerting_band_argues_the_model_was_reaching(table):
+    scored = EvidenceLedger(table, TriggerType.RISK_SCORE)
+    posting = scored.post("risk_30_50", True, "the model scored it 0.42", REF, [])
+    assert posting.log_lr < 0
+    assert scored.p < scored.prior
+
+
+def test_a_customer_report_gets_the_full_ratio_because_the_score_is_news(table):
+    """The cardholder raised this alert, so the model's score is independent."""
+    reported = EvidenceLedger(table, TriggerType.CUSTOMER_REPORT)
+    posting = reported.post("risk_70_85", True, "the model scored it 0.79", REF, [])
+    # The raw ratio is 8.22 — log 2.107 — which the group cap then clamps to
+    # 1.2. What matters is that nothing was subtracted before the cap saw it.
+    assert posting.log_lr == pytest.approx(GROUP_CAP)
+    assert posting.capped is True
+    assert math.log(table.lookup("risk_70_85", True)) > GROUP_CAP
+
+
+def test_the_channel_family_is_one_observation_not_four(table):
+    """channel_online, dist1_missing, m_flags and device_found are one fact.
+
+    Vesta populates the M flags and the device record only for online
+    transactions, and dist1 is missing precisely when there is no card-present
+    distance. Measured over the benchmark, the four fitted groups contributed
+    +1.84 log-odds on every case that came back fraud and -1.45 on every case
+    that came back legitimate: a 27x swing for one fact.
+    """
+    for feature in ("channel_online", "dist1_missing", "m_flags_all_true", "device_found"):
+        assert table.group_of(feature) == "channel", feature
+    # The device's own signals are a different observation and stay apart.
+    assert table.group_of("device_new") == "device"
+    assert table.group_of("device_never_used_on_card") == "device"
+
+    ledger = EvidenceLedger(table, TriggerType.RISK_SCORE)
+    for feature in ("channel_online", "dist1_missing", "m_flags_all_true", "device_found"):
+        ledger.post(feature, True, "online", REF, [])
+    assert abs(ledger.group_totals["channel"]) <= GROUP_CAP + 1e-9

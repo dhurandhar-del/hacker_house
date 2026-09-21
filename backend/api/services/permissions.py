@@ -43,9 +43,7 @@ class RoutePermissionPolicy:
         """The route for this action at this exposure, recomputed every time."""
         return self._routing.route_for(action, exposure_usd)
 
-    def may_execute(
-        self, principal: Principal, action: Action, exposure_usd: float = 0.0
-    ) -> bool:
+    def may_execute(self, principal: Principal, action: Action, exposure_usd: float = 0.0) -> bool:
         """Whether this principal may execute the action with no approval.
 
         True only when the recomputed route is ``auto`` — for every role,
