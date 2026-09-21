@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;padding:0;background:#f7f4ef;color:#1d1813;font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:#f26a1b;text-decoration:none}a:hover{color:#c9540c}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#ded6ca;border-radius:8px}::-webkit-scrollbar-track{background:transparent}
+@keyframes sIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes sPop{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:none}}
+@keyframes sPulse{0%,100%{opacity:.35}50%{opacity:1}}
+@keyframes stripe{to{background-position:56px 0}}
+@keyframes prowl{0%{transform:translateX(-35%)}100%{transform:translateX(135%)}}
+@keyframes lock{0%{transform:scale(.72);opacity:.85}70%{opacity:0}100%{transform:scale(1.5);opacity:0}}
+@keyframes trace{to{stroke-dashoffset:-28}}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</helmet>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-scope" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.7"></circle><circle cx="12" cy="12" r="2.4" fill="currentColor"></circle><path d="M12 1.5v4M12 18.5v4M1.5 12h4M18.5 12h4" stroke="currentColor" stroke-width="1.7"></path></symbol>
+<symbol id="i-baseline" viewBox="0 0 24 24"><rect x="3" y="13" width="4" height="8" rx="1" fill="currentColor"></rect><rect x="10" y="8" width="4" height="13" rx="1" fill="currentColor"></rect><rect x="17" y="15" width="4" height="6" rx="1" fill="currentColor"></rect><path d="M2 5h20" stroke="currentColor" stroke-width="1.6" stroke-dasharray="3 3"></path></symbol>
+<symbol id="i-window" viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"></rect><path d="M7 10v4M11 9v6M15 11v3M19 10v4" stroke="currentColor" stroke-width="1.7"></path></symbol>
+<symbol id="i-device" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.7"></rect><path d="M10 18.5h4" stroke="currentColor" stroke-width="1.7"></path><circle cx="12" cy="9" r="2" fill="currentColor"></circle></symbol>
+<symbol id="i-region" viewBox="0 0 24 24"><path d="M12 2.5 21.5 12 12 21.5 2.5 12z" fill="none" stroke="currentColor" stroke-width="1.7"></path><circle cx="12" cy="12" r="2.4" fill="currentColor"></circle></symbol>
+<symbol id="i-ring" viewBox="0 0 24 24"><circle cx="12" cy="5" r="3" fill="currentColor"></circle><circle cx="5" cy="17" r="3" fill="currentColor"></circle><circle cx="19" cy="17" r="3" fill="currentColor"></circle><path d="M12 8 6.5 14.5M12 8l5.5 6.5M8 17h8" stroke="currentColor" stroke-width="1.5"></path></symbol>
+<symbol id="i-memory" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="5" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.7"></rect><rect x="3" y="11" width="18" height="5" rx="1.5" fill="currentColor" opacity=".55"></rect><rect x="3" y="18" width="18" height="3" rx="1.5" fill="currentColor" opacity=".3"></rect></symbol>
+<symbol id="i-policy" viewBox="0 0 24 24"><path d="M12 2.5 20 6v6.5c0 4.6-3.4 7.7-8 9-4.6-1.3-8-4.4-8-9V6z" fill="none" stroke="currentColor" stroke-width="1.7"></path><path d="M8.5 12.2l2.6 2.6 4.6-5" fill="none" stroke="currentColor" stroke-width="1.9"></path></symbol>
+<symbol id="i-recur" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 13.7-5.6M20 12a8 8 0 0 1-13.7 5.6" fill="none" stroke="currentColor" stroke-width="1.8"></path><path d="M18 2.5V7h-4.5M6 21.5V17h4.5" fill="none" stroke="currentColor" stroke-width="1.8"></path></symbol>
+<symbol id="i-ask" viewBox="0 0 24 24"><path d="M3.5 5.5h17v11h-9L6 21v-4.5H3.5z" fill="none" stroke="currentColor" stroke-width="1.7"></path><circle cx="12" cy="11" r="1.4" fill="currentColor"></circle><circle cx="7.5" cy="11" r="1.4" fill="currentColor"></circle><circle cx="16.5" cy="11" r="1.4" fill="currentColor"></circle></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.2" fill="none" stroke="currentColor" stroke-width="1.7"></circle><path d="M7.8 12.4l2.9 2.9 5.6-6.2" fill="none" stroke="currentColor" stroke-width="2"></path></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 22 20H2z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"></path><path d="M12 9.5v4.5" stroke="currentColor" stroke-width="2"></path><circle cx="12" cy="17" r="1.2" fill="currentColor"></circle></symbol>
+<symbol id="i-card" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.7"></rect><path d="M2.5 9.5h19" stroke="currentColor" stroke-width="2.2"></path><path d="M6 15h4" stroke="currentColor" stroke-width="1.7"></path></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6" fill="none" stroke="currentColor" stroke-width="1.7"></circle><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0" fill="none" stroke="currentColor" stroke-width="1.7"></path></symbol>
+<symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 4 13.5h6L11 22l9-11.5h-6z" fill="currentColor"></path></symbol>
+<symbol id="i-mail" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"></rect><path d="M3 7l9 6.5L21 7" fill="none" stroke="currentColor" stroke-width="1.7"></path></symbol>
+<symbol id="i-doc" viewBox="0 0 24 24"><path d="M6 2.5h8l4.5 4.5v14.5H6z" fill="none" stroke="currentColor" stroke-width="1.7"></path><path d="M14 2.5V7h4.5M9 12h6M9 16h6" fill="none" stroke="currentColor" stroke-width="1.6"></path></symbol>
+<symbol id="i-hex" viewBox="0 0 24 24"><path d="M12 1.8 21 7v10l-9 5.2L3 17V7z" fill="none" stroke="currentColor" stroke-width="1.8"></path><path d="M12 7.2 16.5 9.8v5.2L12 17.6 7.5 15V9.8z" fill="currentColor"></path></symbol>
+</defs></svg>
+
+<div style="min-width:800px;height:100vh;display:flex;flex-direction:column;background:#f7f4ef">
+
+<header style="height:54px;flex:none;display:flex;align-items:center;gap:18px;padding:0 16px;border-bottom:1px solid #e8e2d9;background:#ffffff">
+<div style="flex:none;display:flex;align-items:center;gap:9px">
+<svg width="22" height="22" style="color:#f26a1b"><use href="#i-hex"></use></svg>
+<div style="display:flex;flex-direction:column;line-height:1">
+<span style="font:700 14px/1 'Space Grotesk';letter-spacing:.14em">SENTINEL</span>
+<span style="font:400 9px/1.4 'JetBrains Mono';color:#6b6259;letter-spacing:.06em">agentic fraud investigator</span>
+</div>
+</div>
+<div style="{{ pillStyle }}">
+<span style="width:6px;height:6px;border-radius:50%;background:#2e7d5b;animation:sPulse 2.4s infinite"></span>
+<span style="flex:none;white-space:nowrap;font:500 10px/1 'JetBrains Mono';color:#6d645b">TigerGraph CE 4.2 · 590,742 txn · 5,565 closed</span>
+</div>
+<div style="flex:none;display:flex;gap:2px;padding:2px;border-radius:8px;background:#f2ede5;border:1px solid #e8e2d9">
+<sc-for list="{{ views }}" as="v" hint-placeholder-count="0">
+<button onClick="{{ v.pick }}" style="{{ v.style }}"><svg width="12" height="12"><use href="#{{ v.icon }}"></use></svg>{{ v.label }}</button>
+</sc-for>
+</div>
+<div style="flex:1"></div>
+<div style="display:flex;align-items:center;gap:14px">
+<button onClick="{{ toggleDemo }}" style="{{ demoBtn }}">
+<svg width="13" height="13"><use href="#i-bolt"></use></svg>{{ demoLabel }}
+</button>
+<div style="{{ pillStyle }}">
+<sc-for list="{{ tally }}" as="t" hint-placeholder-count="3">
+<span style="display:flex;align-items:center;gap:5px;font:600 10px/1 'JetBrains Mono';color:#6d645b"><svg width="8" height="8" viewBox="0 0 8 8"><rect width="8" height="8" rx="2" fill="{{ t.color }}"></rect></svg>{{ t.n }} {{ t.k }}</span>
+</sc-for>
+</div>
+<button onClick="{{ runAll }}" style="flex:none;white-space:nowrap;display:flex;align-items:center;gap:7px;padding:8px 13px;border:1px solid #ded6ca;border-radius:7px;background:#f6f2ec;color:#1d1813;font:600 11px/1 'Space Grotesk';letter-spacing:.03em;cursor:pointer" style-hover="background:#fde7d5;border-color:#f5c9a3">
+<svg width="13" height="13" style="color:#f26a1b"><use href="#i-bolt"></use></svg>Run all 20
+</button>
+<button onClick="{{ toggleDrawer }}" style="flex:none;white-space:nowrap;position:relative;display:flex;align-items:center;gap:7px;padding:8px 13px;border:1px solid #ded6ca;border-radius:7px;background:#f6f2ec;color:#1d1813;font:600 11px/1 'Space Grotesk';cursor:pointer" style-hover="background:#fde7d5">
+<svg width="13" height="13" style="color:#7b5ea7"><use href="#i-check"></use></svg>Approvals
+<span style="min-width:17px;height:17px;padding:0 4px;display:inline-flex;align-items:center;justify-content:center;border-radius:9px;background:{{ apprBadge }};color:#ffffff;font:700 10px/1 'JetBrains Mono'">{{ apprCount }}</span>
+</button>
+</div>
+</header>
+<div style="flex:none;height:3px;background-image:repeating-linear-gradient(115deg,#f26a1b 0 7px,#f26a1b00 7px 14px,#1d1813 14px 19px,#f26a1b00 19px 28px);background-size:56px 100%;animation:stripe 7s linear infinite;opacity:.85"></div>
+<div style="flex:none;height:26px;display:flex;align-items:center;gap:9px;padding:0 16px;border-bottom:1px solid #e8e2d9;background:#ffffff;overflow:hidden">
+<span style="{{ hunt.chip }}"><svg width="11" height="11" style="{{ hunt.icon }}"><use href="#{{ hunt.glyph }}"></use></svg>{{ hunt.label }}</span>
+<span style="font:500 9.5px/1 'JetBrains Mono';color:#7a7168;letter-spacing:.06em">{{ hunt.note }}</span>
+<span style="flex:1;position:relative;height:2px;background:#f2ede5;border-radius:2px;overflow:hidden;margin:0 4px">
+<span style="{{ hunt.barStyle }}"></span>
+</span>
+<span style="font:600 9.5px/1 'JetBrains Mono';color:#6b6259">{{ hunt.pct }}</span>
+</div>
+
+<div style="flex:1;min-height:0;display:grid;grid-template-columns:252px minmax(0,1fr) auto">
+
+<aside style="min-height:0;display:flex;flex-direction:column;border-right:1px solid #e8e2d9;background:#ffffff">
+<div style="flex:none;padding:12px 14px 9px;display:flex;align-items:baseline;justify-content:space-between">
+<span style="font:600 10px/1 'JetBrains Mono';letter-spacing:.14em;color:#6b6259">CASE QUEUE</span>
+<span style="font:500 9px/1 'JetBrains Mono';color:#7a7168">exposure × uncertainty</span>
+</div>
+<div style="flex:1;min-height:0;overflow-y:auto;padding:0 8px 12px">
+<sc-for list="{{ queue }}" as="c" hint-placeholder-count="0">
+<div onClick="{{ c.pick }}" style="{{ c.rowStyle }}">
+<div style="display:flex;align-items:center;gap:7px">
+<svg width="13" height="13" style="{{ c.trigStyle }}"><sc-if value="{{ c.trigIcon }}" hint-placeholder-val="{{ false }}"><use href="#{{ c.trigIcon }}"></use></sc-if></svg>
+<span style="white-space:nowrap;font:600 11px/1 'JetBrains Mono';letter-spacing:.02em">{{ c.id }}</span>
+<span style="flex:1"></span>
+<svg width="26" height="26" viewBox="0 0 26 26">
+<circle cx="13" cy="13" r="10" fill="none" stroke="#ece6dd" stroke-width="3"></circle>
+<circle cx="13" cy="13" r="10" fill="none" stroke="{{ c.color }}" stroke-width="3" stroke-linecap="round" stroke-dasharray="62.8" stroke-dashoffset="{{ c.dash }}" transform="rotate(-90 13 13)"></circle>
+</svg>
+</div>
+<div style="display:flex;align-items:center;gap:6px;margin-top:6px">
+<span style="{{ c.chipStyle }}">{{ c.verdict }}</span>
+<span style="font:500 10px/1 'JetBrains Mono';color:#6b6259">{{ c.amt }}</span>
+<span style="flex:1"></span>
+<span style="font:700 11px/1 'JetBrains Mono';color:{{ c.color }}">{{ c.pText }}</span>
+</div>
+</div>
+</sc-for>
+</div>
+</aside>
+
+<main style="min-width:520px;min-height:0;display:flex;flex-direction:column;background:#f7f4ef">
+<div style="flex:none;padding:14px 20px 0;border-bottom:1px solid #e8e2d9">
+<div style="display:flex;align-items:flex-start;gap:14px">
+<div style="flex:1;min-width:0">
+<div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+<span style="flex:none;white-space:nowrap;font:700 17px/1.1 'Space Grotesk';letter-spacing:.01em">{{ sel.id }}</span>
+<span style="{{ sel.trigChip }}">{{ sel.trigger }}</span>
+<span style="{{ sel.chipStyle }}">{{ sel.verdict }}</span>
+<span style="{{ sel.patChip }}">{{ sel.pattern }}</span>
+</div>
+<p style="margin:7px 0 0;font:400 12px/1.5 'Space Grotesk';color:#6d645b;max-width:70ch;text-wrap:pretty">{{ sel.trigText }}</p>
+</div>
+<div style="flex:none;display:flex;align-items:center;gap:14px;padding-top:2px">
+<button onClick="{{ togglePane }}" style="{{ paneBtn }}">{{ paneLabel }}</button>
+<div style="text-align:right">
+<div style="font:500 9px/1 'JetBrains Mono';color:#6b6259;letter-spacing:.1em">EXPOSURE</div>
+<div style="font:700 17px/1.2 'JetBrains Mono';color:#1d1813;margin-top:4px">{{ sel.exposure }}</div>
+</div>
+<div style="position:relative;width:62px;height:62px">
+<svg width="62" height="62" viewBox="0 0 62 62">
+<circle cx="31" cy="31" r="25" fill="none" stroke="#ece6dd" stroke-width="6"></circle>
+<circle cx="31" cy="31" r="25" fill="none" stroke="{{ sel.color }}" stroke-width="6" stroke-linecap="round" stroke-dasharray="157" stroke-dashoffset="{{ sel.dash }}" transform="rotate(-90 31 31)"></circle>
+</svg>
+<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+<span style="font:700 15px/1 'JetBrains Mono';color:{{ sel.color }}">{{ sel.pText }}</span>
+<span style="font:500 7px/1 'JetBrains Mono';color:#6b6259;margin-top:2px">P(fraud)</span>
+</div>
+</div>
+</div>
+</div>
+<div style="display:flex;align-items:center;gap:2px;margin-top:12px;min-width:0;overflow-x:auto">
+<sc-for list="{{ tabs }}" as="t" hint-placeholder-count="0">
+<button onClick="{{ t.pick }}" style="{{ t.style }}">
+<svg width="13" height="13"><sc-if value="{{ t.icon }}" hint-placeholder-val="{{ false }}"><use href="#{{ t.icon }}"></use></sc-if></svg>{{ t.label }}
+<span style="{{ t.countStyle }}">{{ t.count }}</span>
+</button>
+</sc-for>
+</div>
+</div>
+
+<div style="flex:1;min-height:0;overflow-y:auto;padding:16px 20px 28px">
+
+<sc-if value="{{ isTimeline }}" hint-placeholder-val="{{ true }}">
+<div>
+<div style="border:1px solid #e8e2d9;border-radius:10px;background:#ffffff;padding:12px 14px 10px;margin-bottom:14px">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+<span style="font:600 10px/1 'JetBrains Mono';letter-spacing:.12em;color:#6b6259">PROBABILITY TRAJECTORY</span>
+<span style="font:500 10px/1 'JetBrains Mono';color:#6b6259">{{ sel.stepLabel }}</span>
+</div>
+<svg viewBox="0 0 620 84" style="width:100%;height:84px;display:block">
+<line x1="0" y1="21" x2="620" y2="21" stroke="#ece6dd" stroke-width="1" stroke-dasharray="4 5"></line>
+<line x1="0" y1="63" x2="620" y2="63" stroke="#ece6dd" stroke-width="1" stroke-dasharray="4 5"></line>
+<text x="4" y="17" fill="#7a7168" font-family="JetBrains Mono" font-size="9.5">0.85 act</text>
+<text x="4" y="75" fill="#7a7168" font-family="JetBrains Mono" font-size="9.5">0.15 clear</text>
+<polyline points="{{ traj }}" fill="none" stroke="{{ sel.color }}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"></polyline>
+<sc-for list="{{ trajPts }}" as="p" hint-placeholder-count="0">
+<circle cx="{{ p.x }}" cy="{{ p.y }}" r="{{ p.r }}" fill="{{ p.fill }}" stroke="#ffffff" stroke-width="1.5"></circle>
+</sc-for>
+<sc-if value="{{ askX }}" hint-placeholder-val="{{ false }}">
+<line x1="{{ askX }}" y1="6" x2="{{ askX }}" y2="78" stroke="#7b5ea7" stroke-width="1.4" stroke-dasharray="3 3"></line>
+</sc-if>
+</svg>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:7px">
+<sc-for list="{{ steps }}" as="s" hint-placeholder-count="0">
+<div style="{{ s.rowStyle }}">
+<div style="{{ s.iconWrap }}"><svg width="16" height="16"><sc-if value="{{ s.icon }}" hint-placeholder-val="{{ false }}"><use href="#{{ s.icon }}"></use></sc-if></svg></div>
+<div style="flex:1;min-width:0">
+<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+<span style="font:600 10.5px/1 'JetBrains Mono';color:#c9540c">{{ s.tool }}</span>
+<span style="{{ s.kindChip }}">{{ s.kind }}</span>
+</div>
+<p style="margin:5px 0 0;font:400 12.5px/1.5 'Space Grotesk';color:#2e2822;text-wrap:pretty">{{ s.finding }}</p>
+</div>
+<div style="flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:5px;padding-left:6px">
+<span style="{{ s.lrStyle }}">{{ s.lr }}</span>
+<span style="font:500 10px/1 'JetBrains Mono';color:#6b6259">{{ s.from }} → <b style="color:{{ s.pColor }}">{{ s.to }}</b></span>
+</div>
+</div>
+</sc-for>
+<sc-if value="{{ running }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:9px;padding:11px 13px;border:1px dashed #ded6ca;border-radius:9px;color:#6b6259;font:500 11px/1 'JetBrains Mono';animation:sPulse 1.3s infinite">
+<span style="width:7px;height:7px;border-radius:50%;background:#f26a1b"></span>investigating…
+</div>
+</sc-if>
+<sc-if value="{{ stopReason }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;gap:10px;align-items:flex-start;padding:12px 13px;border:1px solid #ded6ca;border-radius:9px;background:#fdfbf8;animation:sIn .3s ease both">
+<svg width="16" height="16" style="color:#2e7d5b;flex:none;margin-top:1px"><use href="#i-check"></use></svg>
+<div>
+<div style="font:600 10px/1 'JetBrains Mono';letter-spacing:.12em;color:#6b6259">STOP CONDITION</div>
+<p style="margin:5px 0 0;font:400 12.5px/1.5 'Space Grotesk';color:#2e2822">{{ stopReason }}</p>
+</div>
+</div>
+</sc-if>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isCase }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:14px">
+<div style="border:1px solid #e8e2d9;border-radius:10px;background:#ffffff;padding:14px">
+<div style="font:600 10px/1 'JetBrains Mono';letter-spacing:.12em;color:#6b6259;margin-bottom:9px">SUMMARY</div>
+<p style="margin:0;font:400 13px/1.6 'Space Grotesk';color:#2e2822;text-wrap:pretty">{{ sel.summary }}</p>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;margin-top:14px;background:#e8e2d9;border:1px solid #e8e2d9;border-radius:8px;overflow:hidden">
+<sc-for list="{{ sel.facts }}" as="f" hint-placeholder-count="4">
+<div style="background:#fdfbf8;padding:10px 11px">
+<div style="font:500 9px/1 'JetBrains Mono';color:#6b6259;letter-spacing:.08em">{{ f.k }}</div>
+<div style="font:700 14px/1.2 'JetBrains Mono';color:{{ f.color }};margin-top:6px">{{ f.v }}</div>
+</div>
+</sc-for>
+</div>
+</div>
+<div style="border:1px solid #e8e2d9;border-radius:10px;background:#ffffff;overflow:hidden">
+<div style="padding:11px 14px;border-bottom:1px solid #e8e2d9;display:flex;align-items:center;justify-content:space-between">
+<span style="font:600 10px/1 'JetBrains Mono';letter-spacing:.12em;color:#6b6259">EVIDENCE LEDGER</span>
+<span style="font:500 9px/1 'JetBrains Mono';color:#7a7168">every row re-runnable</span>
+</div>
+<sc-for list="{{ evidence }}" as="e" hint-placeholder-count="0">
+<div style="display:flex;gap:11px;padding:12px 14px;border-bottom:1px solid #efe9e0" style-hover="background:#fdf4ea">
+<svg width="14" height="14" style="{{ e.srcStyle }}"><sc-if value="{{ e.srcIcon }}" hint-placeholder-val="{{ false }}"><use href="#{{ e.srcIcon }}"></use></sc-if></svg>
+<div style="flex:1;min-width:0">
+<p style="margin:0;font:400 12.5px/1.5 'Space Grotesk';color:#2e2822;text-wrap:pretty">{{ e.claim }}</p>
+<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:7px;align-items:center">
+<code style="font:500 10px/1.5 'JetBrains Mono';color:#c9540c;background:#fff3e8;border:1px solid #f7cfab;padding:2px 6px;border-radius:5px">{{ e.ref }}</code>
+<sc-for list="{{ e.ids }}" as="id" hint-placeholder-count="2">
+<code style="font:500 10px/1.5 'JetBrains Mono';color:#6d645b;background:#f5f1ea;border:1px solid #e3ddd3;padding:2px 6px;border-radius:5px">{{ id }}</code>
+</sc-for>
+</div>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isSar }}" hint-placeholder-val="{{ false }}">
+<div>
+<sc-if value="{{ sar.file }}" hint-placeholder-val="{{ true }}">
+<div style="border:1px solid #e3ddd3;border-radius:10px;background:#ffffff;overflow:hidden">
+<div style="padding:13px 16px;border-bottom:1px solid #e3ddd3;display:flex;align-items:center;gap:10px;background:#f7f4ef">
+<svg width="16" height="16" style="color:#7b5ea7"><use href="#i-doc"></use></svg>
+<span style="font:700 12px/1 'Space Grotesk';letter-spacing:.06em">SUSPICIOUS ACTIVITY REPORT</span>
+<span style="flex:1"></span>
+<span style="padding:3px 8px;border-radius:5px;background:#cc2b4e;color:#ffffff;font:700 9px/1.5 'JetBrains Mono'">L2 REQUIRED</span>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#e3ddd3">
+<sc-for list="{{ sar.meta }}" as="m" hint-placeholder-count="3">
+<div style="background:#ffffff;padding:11px 14px">
+<div style="font:500 9px/1 'JetBrains Mono';color:#7a8291;letter-spacing:.08em">{{ m.k }}</div>
+<div style="font:600 12.5px/1.3 'JetBrains Mono';color:#1d1813;margin-top:6px">{{ m.v }}</div>
+</div>
+</sc-for>
+</div>
+<div style="padding:16px">
+<div style="font:500 9px/1 'JetBrains Mono';color:#7a8291;letter-spacing:.1em;margin-bottom:9px">NARRATIVE — who · what · when · where · how · why</div>
+<p style="margin:0;font:400 13px/1.75 'Space Grotesk';color:#2e2822;text-wrap:pretty">{{ sar.narrative }}</p>
+<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:14px">
+<sc-for list="{{ sar.subjects }}" as="s" hint-placeholder-count="3">
+<code style="font:500 10px/1.6 'JetBrains Mono';color:#2f6bb5;background:#eef3fa;border:1px solid #cfdff2;padding:3px 8px;border-radius:5px">{{ s }}</code>
+</sc-for>
+</div>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ sar.none }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;gap:12px;align-items:flex-start;border:1px solid #e8e2d9;border-radius:10px;background:#ffffff;padding:16px">
+<svg width="18" height="18" style="color:#2e7d5b;flex:none;margin-top:1px"><use href="#i-check"></use></svg>
+<div>
+<div style="font:600 13px/1.3 'Space Grotesk'">No report filed</div>
+<p style="margin:7px 0 0;font:400 12.5px/1.6 'Space Grotesk';color:#6d645b;max-width:64ch">{{ sar.reason }}</p>
+</div>
+</div>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ isJson }}" hint-placeholder-val="{{ false }}">
+<div style="border:1px solid #e8e2d9;border-radius:10px;background:#ffffff;overflow:hidden">
+<div style="display:flex;align-items:center;gap:9px;padding:11px 14px;border-bottom:1px solid #e8e2d9;background:#fdfbf8">
+<svg width="14" height="14" style="color:#2f6bb5"><use href="#i-doc"></use></svg>
+<span style="font:600 11px/1 'JetBrains Mono'">cases/{{ sel.id }}.json</span>
+<span style="{{ jsonChip }}">{{ jsonState }}</span>
+<span style="flex:1"></span>
+<span style="font:500 9.5px/1 'JetBrains Mono';color:#7a7168">every ID verified against the graph before write</span>
+</div>
+<pre style="margin:0;padding:15px 16px;font:400 11.5px/1.65 'JetBrains Mono';color:#2e2822;white-space:pre-wrap;word-break:break-word;max-height:none">{{ answerJson }}</pre>
+</div>
+</sc-if>
+
+<sc-if value="{{ isMemory }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:9px">
+<div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:2px">
+<span style="font:600 10px/1 'JetBrains Mono';letter-spacing:.12em;color:#6b6259">RETRIEVED MEMORY</span>
+<span style="font:500 9px/1 'JetBrains Mono';color:#7a7168">vector + structural kNN over Case / ClosedCase</span>
+</div>
+<sc-for list="{{ memory }}" as="m" hint-placeholder-count="0">
+<div style="display:flex;gap:12px;align-items:center;border:1px solid {{ m.border }};border-radius:9px;background:#ffffff;padding:12px 14px" style-hover="background:#fdf4ea">
+<svg width="16" height="16" style="{{ m.iconStyle }}"><sc-if value="{{ m.icon }}" hint-placeholder-val="{{ false }}"><use href="#{{ m.icon }}"></use></sc-if></svg>
+<div style="flex:1;min-width:0">
+<div style="display:flex;align-items:center;gap:8px">
+<span style="font:600 11.5px/1 'JetBrains Mono'">{{ m.id }}</span>
+<span style="{{ m.tagStyle }}">{{ m.tag }}</span>
+</div>
+<p style="margin:6px 0 0;font:400 12px/1.5 'Space Grotesk';color:#6d645b">{{ m.why }}</p>
+</div>
+<div style="flex:none;width:92px">
+<div style="font:600 10px/1 'JetBrains Mono';color:#6d645b;text-align:right">{{ m.sim }}</div>
+<div style="height:4px;border-radius:3px;background:#ece6dd;margin-top:6px;overflow:hidden">
+<div style="{{ m.barStyle }}"></div>
+</div>
+</div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+</div>
+</main>
+
+<aside style="{{ paneStyle }}">
+<div style="flex:none;padding:12px 14px 6px;display:flex;align-items:center;justify-content:space-between">
+<span style="font:600 10px/1 'JetBrains Mono';letter-spacing:.14em;color:#6b6259">GRAPH EVIDENCE</span>
+<span style="font:500 9px/1 'JetBrains Mono';color:#7a7168">{{ graphCount }}</span>
+</div>
+<div style="flex:none;margin:0 12px;border:1px solid #e8e2d9;border-radius:10px;background:#fffdfa;overflow:hidden">
+<svg viewBox="0 0 560 236" style="width:100%;height:172px;display:block">
+<sc-for list="{{ edges }}" as="e" hint-placeholder-count="0">
+<line x1="{{ e.x1 }}" y1="{{ e.y1 }}" x2="{{ e.x2 }}" y2="{{ e.y2 }}" stroke="{{ e.stroke }}" stroke-width="{{ e.w }}" stroke-dasharray="{{ e.dash }}" style="{{ e.anim }}"></line>
+</sc-for>
+<sc-if value="{{ focus }}" hint-placeholder-val="{{ false }}">
+<circle cx="{{ focus.x }}" cy="{{ focus.y }}" r="{{ focus.r }}" fill="none" stroke="{{ focus.c }}" stroke-width="2" style="{{ focus.pulse }}"></circle>
+<circle cx="{{ focus.x }}" cy="{{ focus.y }}" r="{{ focus.r2 }}" fill="none" stroke="{{ focus.c }}" stroke-width="1.2" stroke-dasharray="5 7" style="{{ focus.spin }}"></circle>
+</sc-if>
+<sc-for list="{{ nodes }}" as="n" hint-placeholder-count="0">
+<g style="animation:sPop .28s ease both">
+<circle cx="{{ n.x }}" cy="{{ n.y }}" r="{{ n.r }}" fill="{{ n.fill }}" stroke="{{ n.stroke }}" stroke-width="2"></circle>
+<text x="{{ n.x }}" y="{{ n.ty }}" fill="{{ n.tc }}" font-family="JetBrains Mono" font-size="9" font-weight="600" text-anchor="middle">{{ n.label }}</text>
+</g>
+</sc-for>
+</svg>
+<div style="display:flex;flex-wrap:wrap;gap:9px;padding:8px 11px;border-top:1px solid #efe9e0">
+<sc-for list="{{ legend }}" as="l" hint-placeholder-count="5">
+<span style="display:flex;align-items:center;gap:5px;font:500 9px/1 'JetBrains Mono';color:#6b6259">
+<svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="{{ l.c }}"></circle></svg>{{ l.k }}
+</span>
+</sc-for>
+</div>
+</div>
+
+<div style="flex:1;min-height:0;overflow-y:auto;padding:14px 12px 18px">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
+<span style="font:600 10px/1 'JetBrains Mono';letter-spacing:.14em;color:#6b6259">NEXT BEST ACTION</span>
+<div style="display:flex;gap:2px;padding:2px;border-radius:7px;background:#f6f2ec;border:1px solid #e8e2d9">
+<button onClick="{{ showInitial }}" style="{{ initBtn }}">initial</button>
+<button onClick="{{ showFinal }}" style="{{ finalBtn }}">final</button>
+</div>
+</div>
+
+<sc-if value="{{ whatChanged }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;gap:9px;align-items:flex-start;padding:10px 11px;border:1px solid #ded0f0;border-radius:9px;background:#f5f0fb;margin-bottom:10px">
+<svg width="14" height="14" style="color:#7b5ea7;flex:none;margin-top:1px"><use href="#i-ask"></use></svg>
+<p style="margin:0;font:400 11.5px/1.5 'Space Grotesk';color:#463765;text-wrap:pretty">{{ whatChanged }}</p>
+</div>
+</sc-if>
+
+<div style="display:flex;flex-direction:column;gap:8px">
+<sc-for list="{{ actions }}" as="a" hint-placeholder-count="3">
+<div style="{{ a.cardStyle }}">
+<div style="display:flex;align-items:center;gap:8px">
+<span style="{{ a.numStyle }}">{{ a.n }}</span>
+<span style="font:700 11.5px/1 'JetBrains Mono';letter-spacing:.01em;color:#1d1813">{{ a.action }}</span>
+<span style="flex:1"></span>
+<span style="{{ a.routeStyle }}">{{ a.route }}</span>
+</div>
+<p style="margin:8px 0 0;font:400 11.5px/1.5 'Space Grotesk';color:#6d645b;text-wrap:pretty">{{ a.reason }}</p>
+<button onClick="{{ a.click }}" style="{{ a.btnStyle }}">{{ a.btnLabel }}</button>
+</div>
+</sc-for>
+</div>
+</div>
+</aside>
+
+</div>
+
+<sc-if value="{{ isMonitor }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;left:0;right:0;top:83px;bottom:0;background:#f7f4ef;z-index:20;overflow-y:auto;padding:20px 24px 34px">
+<div style="display:flex;align-items:flex-end;gap:14px;margin-bottom:16px">
+<div>
+<div style="font:700 16px/1.2 'Space Grotesk'">Autonomous monitoring</div>
+<div style="font:500 10.5px/1.4 'JetBrains Mono';color:#6b6259;margin-top:5px">exam window 2016-11-01 → 2016-12-31 · unattended sweep, outside the 20 cases</div>
+</div>
+<span style="flex:1"></span>
+<span style="{{ monChip }}">{{ monState }}</span>
+</div>
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px">
+<sc-for list="{{ monStats }}" as="s" hint-placeholder-count="0">
+<div style="border:1px solid #e8e2d9;border-radius:10px;background:#ffffff;padding:13px 14px">
+<div style="display:flex;align-items:center;gap:6px">
+<svg width="12" height="12" style="{{ s.iconStyle }}"><use href="#{{ s.icon }}"></use></svg>
+<span style="font:500 9px/1 'JetBrains Mono';color:#6b6259;letter-spacing:.09em">{{ s.k }}</span>
+</div>
+<div style="font:700 21px/1.1 'JetBrains Mono';color:{{ s.color }};margin-top:9px">{{ s.v }}</div>
+<div style="font:400 10px/1.4 'Space Grotesk';color:#7a7168;margin-top:5px">{{ s.note }}</div>
+</div>
+</sc-for>
+</div>
+<div style="border:1px solid #e8e2d9;border-radius:10px;background:#ffffff;padding:14px 16px 10px;margin-bottom:16px">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+<span style="font:600 10px/1 'JetBrains Mono';letter-spacing:.12em;color:#6b6259">DAILY SCORED VOLUME · BARS ABOVE THE LINE CROSSED THE OPEN THRESHOLD</span>
+<span style="font:500 9.5px/1 'JetBrains Mono';color:#7a7168">61 days</span>
+</div>
+<svg viewBox="0 0 1220 150" style="width:100%;height:150px;display:block">
+<line x1="0" y1="96" x2="1220" y2="96" stroke="#ece6dd" stroke-width="1"></line>
+<sc-for list="{{ monBars }}" as="b" hint-placeholder-count="0">
+<rect x="{{ b.x }}" y="{{ b.y }}" width="14" height="{{ b.h }}" rx="2" fill="{{ b.fill }}"></rect>
+</sc-for>
+<sc-for list="{{ monMarks }}" as="m" hint-placeholder-count="0">
+<circle cx="{{ m.x }}" cy="{{ m.y }}" r="3.6" fill="{{ m.fill }}" stroke="#ffffff" stroke-width="1.4"></circle>
+</sc-for>
+</svg>
+</div>
+<div style="border:1px solid #e8e2d9;border-radius:10px;background:#ffffff;overflow:hidden">
+<div style="display:grid;grid-template-columns:104px 92px 132px 168px 62px 1fr 116px;gap:1px;background:#e8e2d9;border-bottom:1px solid #e8e2d9">
+<sc-for list="{{ monHead }}" as="h" hint-placeholder-count="0">
+<div style="background:#fdfbf8;padding:9px 11px;font:600 9px/1 'JetBrains Mono';letter-spacing:.09em;color:#6b6259">{{ h }}</div>
+</sc-for>
+</div>
+<sc-for list="{{ monRows }}" as="r" hint-placeholder-count="0">
+<div style="display:grid;grid-template-columns:104px 92px 132px 168px 62px 1fr 116px;gap:1px;background:#efe9e0" style-hover="background:#fdf4ea">
+<div style="background:#ffffff;padding:10px 11px;font:600 10.5px/1.3 'JetBrains Mono'">{{ r.id }}</div>
+<div style="background:#ffffff;padding:10px 11px;font:500 10.5px/1.3 'JetBrains Mono';color:#6d645b">{{ r.date }}</div>
+<div style="background:#ffffff;padding:10px 11px"><span style="{{ r.trigChip }}">{{ r.trig }}</span></div>
+<div style="background:#ffffff;padding:10px 11px"><span style="{{ r.patChip }}">{{ r.pattern }}</span></div>
+<div style="background:#ffffff;padding:10px 11px;font:700 10.5px/1.3 'JetBrains Mono';color:{{ r.color }}">{{ r.p }}</div>
+<div style="background:#ffffff;padding:10px 11px;font:400 11.5px/1.4 'Space Grotesk';color:#2e2822">{{ r.note }}</div>
+<div style="background:#ffffff;padding:10px 11px"><span style="{{ r.actChip }}">{{ r.action }}</span></div>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isRing }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;left:0;right:0;top:83px;bottom:0;background:#f7f4ef;z-index:20;display:flex">
+<div style="flex:1;min-width:0;position:relative;background:#fffdfa;border-right:1px solid #e8e2d9">
+<div style="position:absolute;inset:0;background-image:radial-gradient(#ece6dd 1px,transparent 1px);background-size:26px 26px;opacity:.7"></div>
+<svg viewBox="0 0 900 620" style="position:absolute;inset:0;width:100%;height:100%">
+<sc-for list="{{ ringEdges }}" as="e" hint-placeholder-count="0">
+<line x1="{{ e.x1 }}" y1="{{ e.y1 }}" x2="{{ e.x2 }}" y2="{{ e.y2 }}" stroke="{{ e.stroke }}" stroke-width="{{ e.w }}" stroke-dasharray="{{ e.dash }}" style="{{ e.anim }}"></line>
+</sc-for>
+<sc-for list="{{ ringNodes }}" as="n" hint-placeholder-count="0">
+<g style="animation:sPop .35s ease both">
+<circle cx="{{ n.x }}" cy="{{ n.y }}" r="{{ n.r }}" fill="{{ n.fill }}" stroke="{{ n.stroke }}" stroke-width="2.4"></circle>
+<text x="{{ n.x }}" y="{{ n.ty }}" fill="#3a332c" font-family="JetBrains Mono" font-size="17" font-weight="600" text-anchor="middle">{{ n.label }}</text>
+<text x="{{ n.x }}" y="{{ n.ty2 }}" fill="#7a7168" font-family="JetBrains Mono" font-size="14.5" text-anchor="middle">{{ n.sub }}</text>
+</g>
+</sc-for>
+<circle cx="450" cy="300" r="76" fill="none" stroke="#cc2b4e" stroke-width="1.4" stroke-dasharray="7 9" style="animation:spin 22s linear infinite;transform-origin:center;transform-box:fill-box;opacity:.55"></circle>
+</svg>
+</div>
+<div style="flex:none;width:360px;overflow-y:auto;padding:18px 18px 26px;background:#ffffff">
+<div style="font:700 15px/1.25 'Space Grotesk'">Undocumented component</div>
+<div style="font:500 10px/1.4 'JetBrains Mono';color:#6b6259;margin-top:6px">louvain · device–email–region projection</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px">
+<sc-for list="{{ ringStats }}" as="s" hint-placeholder-count="0">
+<div style="border:1px solid #e8e2d9;border-radius:9px;padding:11px 12px;background:#fdfbf8">
+<div style="font:500 9px/1 'JetBrains Mono';color:#6b6259;letter-spacing:.08em">{{ s.k }}</div>
+<div style="font:700 16px/1.1 'JetBrains Mono';color:{{ s.color }};margin-top:7px">{{ s.v }}</div>
+</div>
+</sc-for>
+</div>
+<div style="margin-top:16px;border:1px solid #f0ddc4;border-radius:9px;background:#fff8ef;padding:13px 14px">
+<div style="font:600 9.5px/1 'JetBrains Mono';letter-spacing:.1em;color:#a8763a">PATTERN DESCRIPTION · R9</div>
+<p style="margin:8px 0 0;font:400 12.5px/1.6 'Space Grotesk';color:#33291d;text-wrap:pretty">{{ ringDesc }}</p>
+</div>
+<div style="font:600 10px/1 'JetBrains Mono';letter-spacing:.12em;color:#6b6259;margin:18px 0 9px">COMPONENT MEMBERS</div>
+<div style="display:flex;flex-direction:column;gap:6px">
+<sc-for list="{{ ringMembers }}" as="m" hint-placeholder-count="0">
+<div style="display:flex;align-items:center;gap:9px;border:1px solid #e8e2d9;border-radius:8px;padding:9px 11px" style-hover="background:#fdf4ea">
+<svg width="13" height="13" style="{{ m.iconStyle }}"><use href="#{{ m.icon }}"></use></svg>
+<span style="font:600 10.5px/1 'JetBrains Mono'">{{ m.id }}</span>
+<span style="flex:1"></span>
+<span style="font:500 10px/1 'JetBrains Mono';color:#6d645b">{{ m.amt }}</span>
+<span style="{{ m.chip }}">{{ m.tag }}</span>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ demoCaption }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:35;display:flex;align-items:center;gap:13px;padding:12px 18px;border-radius:12px;background:#1d1813;box-shadow:0 10px 34px rgba(60,42,26,.3);animation:sIn .3s ease both">
+<span style="{{ demoActChip }}">{{ demoAct }}</span>
+<span style="font:500 12.5px/1.4 'Space Grotesk';color:#f7f4ef">{{ demoCaption }}</span>
+<button onClick="{{ toggleDemo }}" style="margin-left:6px;padding:5px 10px;border:1px solid #4a423a;border-radius:6px;background:transparent;color:#cfc7bb;font:600 10px/1 'JetBrains Mono';cursor:pointer">stop</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ drawer }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;inset:0;background:rgba(60,42,26,.34);display:flex;justify-content:flex-end;z-index:40" onClick="{{ closeDrawer }}">
+<div onClick="{{ stop }}" style="width:430px;height:100%;background:#ffffff;border-left:1px solid #ded6ca;display:flex;flex-direction:column;animation:sIn .22s ease both">
+<div style="flex:none;padding:16px 18px;border-bottom:1px solid #e8e2d9;display:flex;align-items:center;gap:10px">
+<svg width="17" height="17" style="color:#7b5ea7"><use href="#i-check"></use></svg>
+<span style="font:700 13px/1 'Space Grotesk';letter-spacing:.04em">APPROVAL INBOX</span>
+<span style="flex:1"></span>
+<button onClick="{{ closeDrawer }}" style="width:26px;height:26px;border:1px solid #ded6ca;border-radius:6px;background:#f6f2ec;color:#6d645b;font:600 13px/1 'Space Grotesk';cursor:pointer">×</button>
+</div>
+<div style="flex:1;min-height:0;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+<sc-for list="{{ approvals }}" as="a" hint-placeholder-count="2">
+<div style="border:1px solid #ded6ca;border-radius:10px;background:#161b22;padding:13px 14px">
+<div style="display:flex;align-items:center;gap:8px">
+<span style="font:600 10.5px/1 'JetBrains Mono';color:#6d645b">{{ a.case }}</span>
+<span style="flex:1"></span>
+<span style="{{ a.routeStyle }}">{{ a.route }}</span>
+</div>
+<div style="font:700 12px/1 'JetBrains Mono';margin-top:9px">{{ a.action }}</div>
+<p style="margin:7px 0 0;font:400 11.5px/1.5 'Space Grotesk';color:#6d645b">{{ a.reason }}</p>
+<div style="display:flex;align-items:center;gap:8px;margin-top:11px">
+<span style="font:500 10px/1 'JetBrains Mono';color:#6b6259">exposure {{ a.exposure }}</span>
+<span style="flex:1"></span>
+<button onClick="{{ a.approve }}" style="{{ a.approveStyle }}">{{ a.approveLabel }}</button>
+</div>
+</div>
+</sc-for>
+<sc-if value="{{ noApprovals }}" hint-placeholder-val="{{ false }}">
+<div style="padding:34px 12px;text-align:center;color:#7a7168;font:500 11px/1.6 'JetBrains Mono'">Nothing waiting on a human.<br>Queue an L1 or L2 action to see it here.</div>
+</sc-if>
+</div>
+</div>
+</div>
+</sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#f26a1b&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;#f26a1b&quot;,&quot;#e0490c&quot;,&quot;#7b5ea7&quot;,&quot;#c9540c&quot;]},&quot;streamSpeed&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:460,&quot;min&quot;:120,&quot;max&quot;:1200,&quot;step&quot;:20,&quot;unit&quot;:&quot;ms&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Behaviour&quot;}}">
+const C={bg:'#f7f4ef',panel:'#ffffff',line:'#e8e2d9',ink:'#1d1813',dim:'#6d645b',faint:'#6b6259',blue:'#f26a1b',red:'#cc2b4e',amber:'#7b5ea7',txn:'#8a7f70',green:'#2e7d5b',violet:'#2f6bb5'};
+const money=n=>'$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+const PACK=[
+['HHG-001','risk_score','C12382-K1','C12382',77.07,0.61,'B','Real-time model scored transaction 3514030 ($77.07, in billing region 444.0) at 0.61. Review and decide.','3514030'],
+['HHG-002','risk_score','C11891-K1','C11891',292.36,0.79,'C','Real-time model scored transaction 3478782 ($292.36, online) at 0.79. Review and decide.','3478782'],
+['HHG-003','customer_report','C08623-K2','C08623',49.00,null,'A',"Customer C08623: 'I never made this $49.00 purchase. Please check my card.' Refers to 3530164.",'3530164'],
+['HHG-004','customer_report','C08106-K1','C08106',128.33,null,'D',"Customer C08106: 'I never made this $128.33 purchase. Please check my card.' Refers to 3583227.",'3583227'],
+['HHG-005','risk_score','C02923-K1','C02923',100.07,0.54,'B','Real-time model scored transaction 3523199 ($100.07, online) at 0.54. Review and decide.','3523199'],
+['HHG-006','customer_report','C07297-K1','C07297',482.12,null,'A',"Customer C07297: 'I never made this $482.12 purchase. Please check my card.' Refers to 3476682.",'3476682'],
+['HHG-007','risk_score','C09933-K2','C09933',111.92,0.87,'C','Real-time model scored transaction 3514948 ($111.92, in billing region 264.0) at 0.87. Review and decide.','3514948'],
+['HHG-008','customer_report','C13171-K2','C13171',55.68,null,'D',"Customer C13171: 'I never made this $55.68 purchase. Please check my card.' Refers to 3558054.",'3558054'],
+['HHG-009','customer_report','C08299-K1','C08299',30.02,null,'B',"Customer C08299: 'I never made this $30.02 purchase. Please check my card.' Refers to 3581141.",'3581141'],
+['HHG-010','risk_score','C10434-K1','C10434',1000.03,0.90,'B','Real-time model scored transaction 3506725 ($1,000.03, online) at 0.90. Review and decide.','3506725'],
+['HHG-011','customer_report','C11923-K2','C11923',131.30,null,'A',"Customer C11923: 'I never made this $131.30 purchase. Please check my card.' Refers to 3583368.",'3583368'],
+['HHG-012','risk_score','C05876-K2','C05876',30.91,0.55,'B','Real-time model scored transaction 3553342 ($30.91, in billing region 494.0) at 0.55. Review and decide.','3553342'],
+['HHG-013','risk_score','C07671-K2','C07671',35.66,0.76,'D','Real-time model scored transaction 3526826 ($35.66, online) at 0.76. Review and decide.','3526826'],
+['HHG-014','analyst_request','C13487-K1','C13487',0,null,'C','Analyst request: several cards this month show purchases from the same unusual device profile. Review transaction 3478561 on card C13487-K1 and look for related activity.','3478561'],
+['HHG-015','risk_score','C03042-K1','C03042',599.94,0.77,'A','Real-time model scored transaction 3464869 ($599.94, online) at 0.77. Review and decide.','3464869'],
+['HHG-016','customer_report','C09988-K1','C09988',59.67,null,'D',"Customer C09988: 'I never made this $59.67 purchase. Please check my card.' Refers to 3534820.",'3534820'],
+['HHG-017','risk_score','C04570-K1','C04570',100.09,0.57,'B','Real-time model scored transaction 3450629 ($100.09, online) at 0.57. Review and decide.','3450629'],
+['HHG-018','customer_report','C02354-K2','C02354',39.08,null,'D',"Customer C02354: 'I never made this $39.08 purchase. Please check my card.' Refers to 3491361.",'3491361'],
+['HHG-019','risk_score','C07987-K2','C07987',99.92,0.90,'B','Real-time model scored transaction 3503878 ($99.92, online) at 0.90. Review and decide.','3503878'],
+['HHG-020','risk_score','C12265-K2','C12265',125.08,0.52,'B','Real-time model scored transaction 3509359 ($125.08, online) at 0.52. Review and decide.','3509359']
+];
+
+function tid(base,k){return String(Number(base)+k);}
+
+function archA(m){ // card testing -> fraud
+  const t=m.txn, ids=[tid(t,-6),tid(t,-4),tid(t,-2),t];
+  const exp=+(m.amt*1.42+11.4).toFixed(2);
+  return {
+    verdict:'fraud',status:'closed_fraud',p:0.93,pattern:'card_testing',exposure:exp,
+    steps:[
+      ['scope','i-scope','graph','scope','Resolved '+m.cust+' → 2 cards → 184 days of history. Flagged txn sits on '+m.card+'.',0,0.22,0.22],
+      ['card_baseline','i-baseline','graph','baseline','Card normal: median $41.20, p95 $128.60, 3 product codes, 92% card-present. Flagged amount is 3.8× p95 on a product code never used.',1.1,0.22,0.38],
+      ['card_window','i-window','graph','detector','Three online authorizations under $5 inside 41 minutes, then the flagged purchase. Classic testing ladder.',1.6,0.38,0.61],
+      ['device_novelty','i-device','graph','detector','Identity record marks the device New for this account; id_23 shows an anonymous proxy.',0.9,0.61,0.74],
+      ['device_neighbors','i-device','graph','expander','Same device profile touched 2 other cards inside 14 days, neither belonging to this customer.',0.8,0.74,0.83],
+      ['prior_cases_vector','i-memory','graph','memory','3 closed cases carry this exact signature. All three closed confirmed_fraud.',0.5,0.83,0.86],
+      ['request:customer','i-ask','customer','evidence request','Customer validation requested. Assumed response: cardholder denies the purchases and still holds the card — trigger was their own report.',1.4,0.86,0.93],
+      ['policy_engine','i-policy','document','policy','R5 testing sequence + R2 denial + exposure '+money(exp)+'. FILE_REPORT gate opens on exposure > $1,000 or shared device.',0,0.93,0.93]
+    ],
+    stop:'Customer denial settled the verdict and the device link is identified. Further graph steps cannot change the action set.',
+    evidence:[
+      ['Three online authorizations under $5 within 41 minutes, then '+money(m.amt)+' on a product code this card has never used','graph','query:card_window(card_id='+m.card+', hours=2)',ids],
+      ['All four transactions came from a device profile marked New for this account, behind a proxy','graph','query:device_novelty(txn_id='+t+')',['DEV-'+m.cust.slice(1,5)]],
+      ['That device profile appears on 2 other cards in the last 14 days','graph','query:device_neighbors(device_key=DEV-'+m.cust.slice(1,5)+', days=14)',['C04991-K1','C10228-K2']],
+      ['Customer denies the purchases and still holds the card','customer','evidence_request:1',[]],
+      ['Policy R5 and R2 both apply; exposure exceeds the $1,000 reporting gate','document','policy:fraud_policy#R2,R5',[]]
+    ],
+    memory:[['CC-0141','confirmed_fraud','Same testing ladder, same device family, closed in August',0.94],['CC-2671','confirmed_fraud','Sub-$5 probe sequence then a mid-size purchase on a new device',0.88],['CC-3902','confirmed_fraud','Device profile shared across three cards in one week',0.81]],
+    initial:[['DECLINE_TRANSACTION','L1','R5: testing sequence observed, the larger purchase has already cleared'],['VERIFY_WITH_CUSTOMER','auto','R1: 0.86 rests largely on one pattern family — confirm before blocking'],['MONITOR_CONNECTED_CARDS','auto','R6: two other cards share the device profile']],
+    final:[['BLOCK_CARD','L2','R2: customer denies; exposure '+money(exp)+' > $2,500 routes to fraud manager'],['CREATE_CASE','auto','R2: denial confirmed, internal case opened'],['MONITOR_CONNECTED_CARDS','auto','R6: shared device profile named'],['FILE_REPORT','L2','R2: exposure over $1,000 and a shared device profile']],
+    changed:'Customer denial moved probability 0.86 → 0.93 and converted VERIFY_WITH_CUSTOMER into BLOCK_CARD plus FILE_REPORT under R2.',
+    sar:{file:true,narrative:'Customer '+m.cust+' holds card '+m.card+', which was used for four transactions between the 19th and 20th of the month totalling '+money(exp)+'. Three of these were online authorizations under $5 placed within 41 minutes of each other, followed immediately by a purchase of '+money(m.amt)+' under a product code with no history on the account. All four originated from a single device profile that the identity record marks as New for this account and which resolves behind an anonymising proxy. The same device profile was observed on two further cards belonging to unrelated customers within a fourteen-day window. The cardholder was contacted and denies all four transactions, and states the physical card remains in their possession. The sequence matches the card-testing typology described in the bank fraud policy and in three prior closed investigations with the same device signature, all of which were confirmed as fraud. The pattern of small validation authorizations followed by a larger purchase, from a newly seen proxied device shared across unrelated accounts, indicates a compromised card number being monetised by an organised actor rather than an isolated dispute. The activity is reported because exposure exceeds $1,000 and the shared device profile links this account to at least two others.',subjects:[m.cust,m.card,'DEV-'+m.cust.slice(1,5),'C04991-K1','C10228-K2'],amount:exp,dates:['2016-12-08','2016-12-10'],reason:'R2 and policy §3a: exposure exceeds $1,000 and the case connects to a shared device profile.'},
+    graph:'A'
+  };
+}
+
+function archB(m){ // legitimate under a high score
+  return {
+    verdict:'legitimate',status:'closed_legitimate',p:0.07,pattern:'none',exposure:0,
+    steps:[
+      ['scope','i-scope','graph','scope','Resolved '+m.cust+' → 1 card → 6 months. Opening prior set by trigger type, not by the model score.',0,0.40,0.40],
+      ['card_baseline','i-baseline','graph','baseline','Amount '+money(m.amt)+' sits at the card\u2019s 52nd percentile. Product code is the cardholder\u2019s most-used.',-0.6,0.40,0.27],
+      ['recurring_charge_probe','i-recur','graph','detector','Same amount, same product code, five prior months within a two-day window each time. This is a subscription.',-1.4,0.27,0.12],
+      ['region_novelty','i-region','graph','detector','Billing region is new, but home-region activity continued in parallel through the same days. Trip, not clone.',-0.4,0.12,0.09],
+      ['device_novelty','i-device','graph','detector','Device profile has been on this account for 14 months. No proxy, no screen or browser mismatch.',-0.2,0.09,0.07],
+      ['prior_cases_structural','i-memory','graph','memory','kNN on the pattern feature vector: 22 of 25 nearest closed cases were cleared.',-0.1,0.07,0.07],
+      ['policy_engine','i-policy','document','policy','Calibrated LR for the 0.7–0.9 score band is 1.06 — the model score carries almost no information here. R3 path.',0,0.07,0.07]
+    ],
+    stop:'Probability fell below the 0.15 clearing threshold on two independent exonerating findings. No action beyond closure is defensible.',
+    evidence:[
+      ['The flagged amount matches a charge recurring on this card for five consecutive months under the same product code','graph','query:recurring_charge_probe(card_id='+m.card+', amt='+m.amt+')',[m.txn,tid(m.txn,-841),tid(m.txn,-1702)]],
+      ['Home-region activity continued during the out-of-region days, which rules out a cloned card','graph','query:region_novelty(card_id='+m.card+', addr1=444)',[m.card]],
+      ['Device profile has 14 months of history on this account with no proxy or fingerprint mismatch','graph','query:device_novelty(txn_id='+m.txn+')',[m.txn]],
+      ['Reliability curve for the 0.7–0.9 risk-score band gives a likelihood ratio of 1.06 against 5,565 closed cases','document','calibration:elt#score_bucket',[]],
+      ['22 of the 25 structurally nearest closed cases were cleared','graph','query:prior_cases_structural(features=…, k=25)',['CC-0788','CC-4410']]
+    ],
+    memory:[['CC-0788','cleared','Recurring subscription disputed on reflection, cleared under R7',0.91],['CC-4410','cleared','High model score, in-baseline amount, no device anomaly',0.86],['CC-1230','cleared','Out-of-region travel with parallel home activity',0.78]],
+    initial:[['VERIFY_WITH_CUSTOMER','auto','R1: a model score alone is a single signal and 0.40 is below 0.70 — never block on it'],['MONITOR_CARD','auto','R1: keep the card active while the recurring hypothesis is tested']],
+    final:[['CLOSE_NO_FRAUD','auto','R3: recurring pattern confirmed by the cardholder on reflection'],['WARN_CUSTOMER','auto','R7: send the recurring-charge reminder so the dispute does not repeat'],['GENERATE_REPORT','auto','Internal record only — no case, no filing']],
+    changed:'The cardholder recognised the charge once the five-month recurrence was shown to them, taking probability 0.12 → 0.07 and replacing verification with closure under R3.',
+    sar:{file:false,reason:'No report. Verdict is legitimate, exposure is $0, and policy §3a reserves FILE_REPORT for confirmed or strongly suspected activity.'},
+    graph:'B'
+  };
+}
+
+function archC(m){ // ring / undocumented
+  const exp=+(m.amt*4.1+1840).toFixed(2);
+  return {
+    verdict:'fraud',status:'escalated',p:0.88,pattern:'undocumented',exposure:exp,
+    steps:[
+      ['scope','i-scope','graph','scope','Resolved '+m.cust+' → 2 cards. Analyst trigger opens on a higher prior than a model score would.',0,0.30,0.30],
+      ['device_novelty','i-device','graph','detector','Device profile is unusual: a desktop fingerprint with a mobile user-agent and a screen size seen on 0.02% of the population.',0.7,0.30,0.44],
+      ['device_neighbors','i-ring','graph','expander','Six cards across five customers transacted from this exact profile in eleven days.',1.3,0.44,0.66],
+      ['ring_expand','i-ring','graph','algorithm','Louvain over the device–email–region projection returns a component of 6 cards, cohesion 0.81, all activity inside one 11-day window.',0.9,0.66,0.79],
+      ['email_cluster','i-mail','graph','expander','Four of the six share one recipient-email domain, fan-in of 9 transactions.',0.6,0.79,0.85],
+      ['prior_cases_vector','i-memory','graph','memory','No closed case matches this signature. The component fits none of the five documented patterns.',0.3,0.85,0.88],
+      ['policy_engine','i-policy','document','policy','R9 undocumented coordinated abuse across customers. R6 shared origin named. R10 gate holds: BLOCK_ALL_CARDS unreachable.',0,0.88,0.88]
+    ],
+    stop:'The component is fully enumerated and the action set is fixed by R9. Remaining steps would add detail, not change the decision.',
+    evidence:[
+      ['Six cards across five unrelated customers transacted from one device profile inside eleven days','graph','query:device_neighbors(device_key=DEV-7731, days=14)',['C13487-K1','C04991-K1','C10228-K2','C02771-K1','C09130-K2','C11640-K1']],
+      ['Louvain community detection returns a component of cohesion 0.81, time-concentrated in a single 11-day window','graph','query:ring_expand(seed=DEV-7731, hops=2)',['DEV-7731']],
+      ['Four of the six cards route to the same recipient-email domain, fan-in of nine transactions','graph','query:email_cluster(domain=…, role=recipient, days=14)',[m.card,'C04991-K1']],
+      ['The component matches none of the five documented patterns and no closed case in memory','graph','query:prior_cases_vector(text=…, k=10)',[]],
+      ['R9 applies to coordinated abuse across customers that fits no documented pattern','document','policy:fraud_policy#R9',[]]
+    ],
+    memory:[['CASE-2016-1187','sentinel','Written by Sentinel four cases ago — same device component, cited as memory',0.93],['CC-3902','confirmed_fraud','Device shared across three cards, nearest documented analogue',0.72],['CC-5140','undocumented','Closed case tagged undocumented with a similar email fan-in',0.69]],
+    initial:[['CREATE_CASE','auto','R9: coordinated abuse across customers, case opened immediately'],['MONITOR_CONNECTED_CARDS','auto','R6: the shared device profile is named and its five other cards are watched'],['ESCALATE_TO_ANALYST','auto','R9: an undocumented pattern needs a human to name it for the playbook']],
+    final:[['CREATE_CASE','auto','R9: coordinated abuse across customers'],['MONITOR_CONNECTED_CARDS','auto','R6: shared device profile, 5 further cards'],['STEP_UP_AUTH','auto','R9: friction on the component without blocking legitimate holders'],['ESCALATE_TO_ANALYST','auto','R9: pattern named and handed to the analyst'],['FILE_REPORT','L2','R9: undocumented coordinated abuse, exposure '+money(exp)]],
+    changed:'Step-up authentication returned two failures on the component, confirming the cards are not in their holders\u2019 hands and adding STEP_UP_AUTH and FILE_REPORT to the set.',
+    sar:{file:true,narrative:'Six cards belonging to five unrelated customers, including '+m.cust+' on card '+m.card+', transacted from a single device profile within an eleven-day window in November. The profile is anomalous in itself: a desktop-class fingerprint presenting a mobile user-agent at a screen resolution seen on fewer than one in five thousand records in the population. Community detection over the device, recipient-email and billing-region projection returns this set as a single component with cohesion 0.81 and no activity outside the window. Four of the six cards route funds to the same recipient-email domain, a fan-in of nine transactions. Total identified activity across the component is '+money(exp)+'. The behaviour does not match card testing, card-not-present fraud, out-of-region use or account takeover as those are described in the bank policy, and no closed investigation in five years of history carries this signature. Step-up authentication issued to the component returned two failures, indicating the cards are not in the possession of their registered holders. The coordination across otherwise unconnected customers, the compression into a single window, and the common monetisation channel together indicate an organised group operating a shared compromised-credential pipeline. The activity is reported under policy R9 as undocumented coordinated abuse, and the component has been escalated for analyst naming.',subjects:[m.cust,m.card,'DEV-7731','C04991-K1','C10228-K2','C02771-K1','C09130-K2','C11640-K1'],amount:exp,dates:['2016-11-14','2016-11-25'],reason:'R9: coordinated, repeated abuse across customers fitting none of the documented patterns.'},
+    graph:'C',
+    patdesc:'Six cards across five unconnected customers, one anomalous device fingerprint, one recipient-email domain, eleven days. Not testing, not takeover — a shared monetisation pipeline.'
+  };
+}
+
+function archD(m){ // uncertain, no reply
+  const exp=+(m.amt*2.1).toFixed(2);
+  return {
+    verdict:'uncertain',status:'open',p:0.48,pattern:'card_not_present_fraud',exposure:exp,
+    steps:[
+      ['scope','i-scope','graph','scope','Resolved '+m.cust+' → 1 card → 6 months. Customer-report trigger opens above the population base rate.',0,0.35,0.35],
+      ['card_baseline','i-baseline','graph','baseline','Amount is above the card\u2019s p95 but the product code is one the cardholder uses twice a quarter. Mixed signal.',0.4,0.35,0.44],
+      ['card_window','i-window','graph','detector','Two online transactions inside 48 hours. Below the three-event card-testing threshold.',0.3,0.44,0.51],
+      ['device_novelty','i-device','graph','detector','Device is not marked New, but the browser version jumped four releases in one day. Weak, not nothing.',0.2,0.51,0.55],
+      ['region_novelty','i-region','graph','detector','Billing region unchanged. No corroborating geography.',-0.35,0.55,0.47],
+      ['prior_cases_vector','i-memory','graph','memory','Nearest closed cases split 6 fraud / 5 cleared. Memory does not resolve this one.',0.05,0.47,0.48],
+      ['request:customer','i-ask','customer','evidence request','Customer validation requested. Assumed response: no reply within 24 hours — the honest assumption when nothing corroborates either way.',0,0.48,0.48],
+      ['policy_engine','i-policy','document','policy','R4 no-reply path plus R8 uncertain-and-exposed. No block may be emitted below 0.70 on a thin signal set.',0,0.48,0.48]
+    ],
+    stop:'Probability sits in the middle band and the requested evidence did not return. Further graph steps cannot move the action set; a human decides.',
+    evidence:[
+      ['Two online transactions within 48 hours, one above the card\u2019s p95 amount','graph','query:velocity_probe(card_id='+m.card+', ts=…)',[m.txn,tid(m.txn,-3)]],
+      ['Browser version on the flagged transaction jumped four releases from the card\u2019s history in a single day','graph','query:device_novelty(txn_id='+m.txn+')',[m.txn]],
+      ['Billing region and device type are unchanged from the cardholder\u2019s normal','graph','query:card_baseline(card_id='+m.card+')',[m.card]],
+      ['Nearest ten closed cases split six confirmed_fraud to five cleared — memory does not resolve this','graph','query:prior_cases_vector(text=…, k=10)',['CC-2210','CC-3355']],
+      ['No reply from the cardholder within 24 hours of the validation request','customer','evidence_request:1',[]]
+    ],
+    memory:[['CC-2210','confirmed_fraud','Two-transaction burst, minor device drift, later confirmed',0.74],['CC-3355','cleared','Same shape, cardholder had simply updated their browser',0.71],['CC-4902','confirmed_fraud','Above-p95 amount on a familiar product code',0.66]],
+    initial:[['VERIFY_WITH_CUSTOMER','auto','R1: probability 0.48 on a thin signal set — verification precedes any block'],['MONITOR_CARD','auto','R1: card stays active pending reply']],
+    final:[['MONITOR_CARD','auto','R4: no reply within 24 hours'],['DECLINE_TRANSACTION','L1','R4: decline pending authorizations while the card stays open'],['ESCALATE_TO_ANALYST','auto','R8: verdict uncertain and exposure '+money(exp)+' exceeds $500']],
+    changed:'No reply arrived within 24 hours, so R4 replaces the verification path with monitoring and a decline on pending authorizations, and R8 hands the case to an analyst.',
+    sar:{file:false,reason:'No report. Verdict is uncertain and no FILE_REPORT appears in the final actions; policy §3a requires confirmed or strongly suspected activity.'},
+    graph:'D'
+  };
+}
+
+const GRAPHS={
+A:{nodes:[
+ ['cust',46,118,11,C.blue,1,'customer'],['card',124,118,14,C.blue,1,'card'],
+ ['t1',198,58,7,C.txn,3,''],['t2',198,118,7,C.txn,3,''],['t3',198,178,7,C.txn,3,''],
+ ['flag',282,118,17,C.red,3,'flagged'],
+ ['dev',372,70,15,C.red,4,'device'],
+ ['c2',462,34,11,C.blue,5,'card'],['c3',462,108,11,C.blue,5,'card'],
+ ['pc',372,186,13,C.violet,6,'CC-0141']],
+ edges:[[0,1,1],[1,2,3],[1,3,3],[1,4,3],[1,5,3],[5,6,4],[6,7,5],[6,8,5],[6,9,6]]},
+B:{nodes:[
+ ['cust',52,118,11,C.blue,1,'customer'],['card',134,118,14,C.blue,1,'card'],
+ ['flag',232,118,17,C.green,1,'flagged'],
+ ['r1',326,56,8,C.green,3,''],['r2',396,56,8,C.green,3,''],['r3',466,56,8,C.green,3,'×5 months'],
+ ['home',330,184,12,C.blue,4,'home region'],['away',448,184,12,C.green,4,'trip']],
+ edges:[[0,1,1],[1,2,1],[1,3,3],[3,4,3],[4,5,3],[1,6,4],[2,7,4]]},
+C:{nodes:[
+ ['dev',274,118,20,C.red,2,'device'],
+ ['k1',158,52,12,C.blue,3,'card'],['k2',158,184,12,C.blue,3,'card'],
+ ['k3',392,52,12,C.blue,3,'card'],['k4',392,184,12,C.blue,3,'card'],
+ ['k5',274,28,12,C.red,4,'seed'],['k6',274,208,12,C.blue,4,'card'],
+ ['mail',478,118,14,C.violet,5,'email'],['pc',62,118,13,C.violet,6,'memory']],
+ edges:[[0,1,3],[0,2,3],[0,3,3],[0,4,3],[0,5,4],[0,6,4],[3,7,5],[4,7,5],[0,8,6]]},
+D:{nodes:[
+ ['cust',56,118,11,C.blue,1,'customer'],['card',140,118,14,C.blue,1,'card'],
+ ['prev',232,60,9,C.txn,3,''],['flag',252,150,17,C.amber,3,'flagged'],
+ ['dev',360,80,14,C.amber,4,'device?'],['reg',360,182,13,C.blue,5,'region ok'],
+ ['unk',474,118,15,'#cfc7bb',7,'no reply']],
+ edges:[[0,1,1],[1,2,3],[1,3,3],[3,4,4],[3,5,5],[4,6,7]]}
+};
+
+const ARCH={A:archA,B:archB,C:archC,D:archD};
+const VCOL={fraud:C.red,legitimate:C.green,uncertain:C.amber};
+const RCOL={auto:C.green,L1:C.amber,L2:C.red};
+const SRC={graph:['i-ring',C.blue],document:['i-doc',C.violet],customer:['i-ask',C.amber],external:['i-mail',C.dim]};
+
+const CASES=PACK.map(r=>{
+  const m={id:r[0],trigger:r[1],card:r[2],cust:r[3],amt:r[4],score:r[5],arch:r[6],trigText:r[7],txn:r[8]};
+  return Object.assign(m,ARCH[m.arch](m));
+});
+
+
+const MON_ROWS=[
+['AUTO-0031','2016-11-09','risk_score','card_testing',0.91,'Four sub-$4 auths then $312 on a 3-month-dormant card','BLOCK_CARD','L2'],
+['AUTO-0044','2016-11-17','velocity','card_not_present_new_device',0.84,'Three online in 31h from a device first seen that morning','STEP_UP_AUTH','auto'],
+['AUTO-0052','2016-11-23','device_share','undocumented',0.88,'Second component on the DEV-7731 fingerprint family','ESCALATE_TO_ANALYST','auto'],
+['AUTO-0067','2016-12-02','risk_score','none',0.06,'Scored 0.88, matched a 7-month subscription. Cleared, no contact','CLOSE_NO_FRAUD','auto'],
+['AUTO-0074','2016-12-08','region','out_of_region_use',0.71,'Six days in one new region, home activity stopped. Clone, not trip','VERIFY_WITH_CUSTOMER','auto'],
+['AUTO-0089','2016-12-14','email_fanin','undocumented',0.79,'Nine transactions, four cards, one recipient domain','CREATE_CASE','auto'],
+['AUTO-0096','2016-12-19','risk_score','none',0.11,'Above p95 but on the cardholder\u2019s own product mix. Cleared','MONITOR_CARD','auto'],
+['AUTO-0103','2016-12-27','device_share','account_takeover',0.83,'Channel mix flipped and three M-flags failed in one session','BLOCK_CARD','L1']
+];
+const RING_MEMBERS=[
+['C13487-K1',1284.40,'seed','red'],['C04991-K1',892.15,'member','blue'],['C10228-K2',1105.66,'member','blue'],
+['C02771-K1',440.02,'member','blue'],['C09130-K2',733.91,'member','blue'],['C11640-K1',618.30,'member','blue'],
+['DEV-7731',0,'device','red'],['mailhost.qq','—','channel','violet']
+];
+const RING_NODES=[
+[450,300,44,'red','DEV-7731','shared fingerprint'],
+[450,120,30,'red','C13487-K1','seed · $1,284'],
+[236,196,27,'blue','C04991-K1','$892'],
+[236,404,27,'blue','C10228-K2','$1,106'],
+[664,196,27,'blue','C02771-K1','$440'],
+[664,404,27,'blue','C09130-K2','$734'],
+[450,486,27,'blue','C11640-K1','$618'],
+[820,300,25,'violet','mailhost.qq','recipient fan-in 9'],
+[104,300,25,'violet','CASE-2016-1113','cited memory']
+];
+const RING_EDGES=[[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[4,7],[5,7],[1,7],[0,8]];
+
+const chip=(bg,fg)=>({display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',padding:'3px 7px',borderRadius:'5px',background:bg,color:fg,font:"700 9px/1.4 'JetBrains Mono'",letterSpacing:'.06em',textTransform:'uppercase'});
+
+class Component extends DCLogic {
+  state={sel:0,step:0,running:false,tab:'timeline',phase:'final',drawer:false,approvals:[],executed:{},ran:{0:true},view:'console',pane:true,demo:-1,narrow:false};
+  paneTouched=false;
+  componentDidMount(){this.run(0);this.fit=()=>{const w=window.innerWidth,n=w<1180;
+      this.setState(s=>({narrow:n,pane:this.paneTouched?s.pane:!n}));};
+    this.fit();window.addEventListener('resize',this.fit);}
+  componentWillUnmount(){clearInterval(this.t);this.demoStop();window.removeEventListener('resize',this.fit);}
+  demoStop(){(this.dts||[]).forEach(clearTimeout);this.dts=[];}
+  demoRun(){
+    this.demoStop();
+    const speed=Math.max(120,Number(this.props.streamSpeed)||460);
+    const acts=[[5,'console'],[9,'console'],[13,'ring']];
+    let t=0;
+    acts.forEach((a,k)=>{
+      const dur=CASES[a[0]].steps.length*speed+2600;
+      this.dts.push(setTimeout(()=>{
+        const ran=Object.assign({},this.state.ran);ran[a[0]]=true;
+        this.setState({demo:k,view:'console',pane:true,sel:a[0],tab:'timeline',ran});
+        this.run(a[0]);
+        if(a[1]==='ring') this.dts.push(setTimeout(()=>this.setState({view:'ring'}),dur-1800));
+      },t));
+      t+=dur;
+    });
+    this.dts.push(setTimeout(()=>this.setState({demo:-1,view:'console'}),t));
+  }
+  toggleDemoFn(){ if(this.state.demo>=0){this.demoStop();this.setState({demo:-1});} else {this.setState({demo:0});this.demoRun();} }
+  run(i){
+    clearInterval(this.t);
+    const n=CASES[i].steps.length;
+    this.setState({step:0,running:true,phase:'initial'});
+    const speed=Math.max(120,Number(this.props.streamSpeed)||460);
+    this.t=setInterval(()=>{
+      this.setState(s=>{
+        const k=s.step+1;
+        if(k>=n){clearInterval(this.t);return {step:n,running:false,phase:'final'};}
+        return {step:k};
+      });
+    },speed);
+  }
+  pick(i){if(i===this.state.sel)return;const ran=Object.assign({},this.state.ran);ran[i]=true;this.setState({sel:i,tab:'timeline',ran});this.run(i);}
+  renderVals(){
+    const st=this.state, c=CASES[st.sel], accent=this.props.accent||C.blue;
+    const done=!st.running, shown=c.steps.slice(0,st.step||1);
+    const cur=shown[shown.length-1], p=done?c.p:cur[7];
+    const col=done?VCOL[c.verdict]:(p>0.6?C.red:p<0.25?C.green:C.amber);
+    const tally=[{k:'fraud',n:CASES.filter(x=>x.verdict==='fraud').length,color:C.red},{k:'legit',n:CASES.filter(x=>x.verdict==='legitimate').length,color:C.green},{k:'uncertain',n:CASES.filter(x=>x.verdict==='uncertain').length,color:C.amber}];
+
+    const livePs=p, liveCol=col;
+    const queue=CASES.map((x,i)=>{
+      const on=i===st.sel, live=on&&st.running, ran=st.ran[i]&&!live;
+      const lp=live?livePs:0, lc=live?liveCol:'#cfc7bb';
+      return {
+        id:x.id,amt:x.amt?money(x.amt):'ring',verdict:ran?x.verdict:live?'investigating':'queued',
+        pText:ran?x.p.toFixed(2):live?lp.toFixed(2):'—',color:ran?VCOL[x.verdict]:lc,
+        dash:62.8*(1-(ran?x.p:lp)),
+        trigIcon:x.trigger==='customer_report'?'i-user':x.trigger==='analyst_request'?'i-ring':'i-alert',
+        trigStyle:{color:x.trigger==='customer_report'?C.amber:x.trigger==='analyst_request'?C.violet:C.blue},
+        chipStyle:chip(ran?VCOL[x.verdict]+'22':live?lc+'1f':'#f2ede5',ran?VCOL[x.verdict]:live?lc:'#7a7168'),
+        rowStyle:{padding:'10px 11px',borderRadius:'9px',cursor:'pointer',marginBottom:'4px',border:'1px solid '+(on?accent+'66':'transparent'),background:on?'#fff1e4':'transparent'},
+        pick:()=>this.pick(i)
+      };
+    });
+
+    const TABS=[['timeline','Timeline','i-window',c.steps.length],['case','Case file','i-doc',c.evidence.length],['sar','SAR','i-alert',c.sar.file?1:0],['memory','Memory','i-memory',c.memory.length],['json','Answer file','i-doc',1]];
+    const tabs=TABS.map(t=>{const on=st.tab===t[0];return {label:t[1],icon:t[2],count:t[3],
+      style:{display:'flex',alignItems:'center',gap:'6px',padding:'9px 13px',border:'none',borderBottom:'2px solid '+(on?accent:'transparent'),background:'transparent',color:on?C.ink:C.faint,font:"600 11.5px/1 'Space Grotesk'",whiteSpace:'nowrap',cursor:'pointer'},
+      countStyle:{padding:'1px 5px',borderRadius:'4px',background:on?accent+'22':'#f2ede5',color:on?accent:'#7a7168',font:"600 9px/1.5 'JetBrains Mono'"},
+      pick:()=>this.setState({tab:t[0]})};});
+
+    const X=i=>18+i*(584/Math.max(1,c.steps.length-1)), Y=v=>72-v*60;
+    const pts=shown.map((s,i)=>({x:+X(i).toFixed(1),y:+Y(s[7]).toFixed(1),r:i===shown.length-1?4.5:3,fill:i===shown.length-1?col:'#d8d0c4'}));
+    const askIdx=c.steps.findIndex(s=>s[0].indexOf('request:')===0);
+
+    const steps=shown.map((s,i)=>{
+      const up=s[5]>0, flat=s[5]===0;
+      return {tool:s[0],icon:s[1],kind:s[3],finding:s[4],
+        lr:flat?'—':(up?'+':'')+s[5].toFixed(2)+' logLR',
+        from:s[6].toFixed(2),to:s[7].toFixed(2),pColor:s[7]>0.6?C.red:s[7]<0.25?C.green:C.amber,
+        iconWrap:{flex:'none',width:'32px',height:'32px',borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',background:s[3]==='evidence request'?'#f2ecfa':s[3]==='policy'?'#e9f0f9':'#fff1e4',color:s[3]==='evidence request'?C.amber:s[3]==='policy'?C.violet:C.blue},
+        kindChip:chip(s[3]==='evidence request'?'#f2ecfa':s[3]==='policy'?'#e9f0f9':'#f3efe8',s[3]==='evidence request'?C.amber:s[3]==='policy'?C.violet:'#6b6259'),
+        lrStyle:chip(flat?'#f2ede5':up?'#fce9ed':'#e6f4ec',flat?'#7a7168':up?C.red:C.green),
+        rowStyle:Object.assign({display:'flex',gap:'11px',alignItems:'flex-start',padding:'11px 13px',borderRadius:'10px',border:'1px solid '+(i===shown.length-1&&st.running?accent+'66':'#e8e2d9'),background:'#ffffff',animation:'sIn .26s ease both'},(i===shown.length-1&&st.running)?{backgroundImage:'repeating-linear-gradient(115deg,'+accent+'14 0 8px,transparent 8px 28px)',backgroundSize:'56px 100%',animation:'sIn .26s ease both, stripe 2.6s linear infinite'}:{})};
+    });
+
+    const live=st.running;
+    const g=GRAPHS[c.graph], vis=g.nodes.map((n,i)=>[n,i]).filter(([n])=>Math.max(st.step,1)>=n[5]||done);
+    const idx=new Set(vis.map(([,i])=>i));
+    const nodes=vis.map(([n])=>({x:n[1],y:n[2],r:n[3],fill:n[4]+'33',stroke:n[4],label:n[6],ty:n[2]+n[3]+12,tc:'#6b6259'}));
+    const edges=g.edges.filter(e=>idx.has(e[0])&&idx.has(e[1])).map(e=>({x1:g.nodes[e[0]][1],y1:g.nodes[e[0]][2],x2:g.nodes[e[1]][1],y2:g.nodes[e[1]][2],stroke:live?accent+'99':'#dcd3c6',w:live?1.9:1.6,dash:live?'6 6':'0',anim:live?{animation:'trace 1.1s linear infinite'}:null}));
+    const fn=vis.length?vis[vis.length-1][0]:null;
+    const focus=fn?{x:fn[1],y:fn[2],r:fn[3]+7,r2:fn[3]+14,c:live?accent:fn[4],
+      pulse:{animation:'lock 1.7s ease-out infinite',transformOrigin:'center',transformBox:'fill-box'},
+      spin:{animation:'spin 14s linear infinite',transformOrigin:'center',transformBox:'fill-box',opacity:live?0.85:0.35}}:null;
+
+    const HUNT=live?(p>0.6?['ON THE SCENT','i-ring',C.red]:p<0.25?['TRAIL COLD','i-scope',C.green]:['STALKING','i-scope',accent])
+      :(c.verdict==='fraud'?['QUARRY LOCKED','i-bolt',C.red]:c.verdict==='legitimate'?['STOOD DOWN','i-check',C.green]:['HELD AT BAY','i-alert',C.amber]);
+    const hunt={label:HUNT[0],glyph:HUNT[1],
+      icon:{color:HUNT[2]},
+      chip:Object.assign({},chip(HUNT[2]+'1f',HUNT[2]),{gap:'5px'}),
+      note:live?('sweeping '+cur[0]):(c.stop.split(/\.\s/)[0]+'.'),
+      pct:Math.round((Math.min(st.step||1,c.steps.length)/c.steps.length)*100)+'%',
+      barStyle:{position:'absolute',left:0,top:0,bottom:0,width:Math.round((Math.min(st.step||1,c.steps.length)/c.steps.length)*100)+'%',background:HUNT[2],borderRadius:'2px',transition:'width .4s ease'}};
+
+    const list=(st.phase==='initial'&&st.running)?c.initial:(st.phase==='initial'?c.initial:c.final);
+    const actions=list.map((a,i)=>{
+      const route=a[1], key=c.id+'|'+a[0], ex=st.executed[key];
+      const auto=route==='auto';
+      return {n:i+1,action:a[0],route:route,reason:a[2],
+        numStyle:{width:'18px',height:'18px',borderRadius:'5px',display:'inline-flex',alignItems:'center',justifyContent:'center',background:'#f2ede5',color:'#6b6259',font:"700 9px/1 'JetBrains Mono'"},
+        routeStyle:chip(RCOL[route]+'22',RCOL[route]),
+        cardStyle:{border:'1px solid '+(ex?RCOL[route]+'55':'#e8e2d9'),borderRadius:'10px',background:'#ffffff',padding:'12px 13px'},
+        btnStyle:{width:'100%',marginTop:'10px',padding:'8px',borderRadius:'7px',cursor:ex?'default':'pointer',border:'1px solid '+(ex?RCOL[route]+'55':auto?C.green+'55':'#ded6ca'),background:ex?RCOL[route]+'1a':auto?C.green+'14':'#f6f2ec',color:ex?RCOL[route]:auto?C.green:'#4a423a',font:"600 10.5px/1 'JetBrains Mono'",letterSpacing:'.04em'},
+        btnLabel:ex?(auto?'✓ executed':'✓ approved · case advanced'):(auto?'Execute now':'Send to '+route+' approval'),
+        click:()=>{
+          if(ex)return;
+          if(auto){const e=Object.assign({},st.executed);e[key]=1;this.setState({executed:e});}
+          else{
+            if(st.approvals.some(x=>x.key===key)){this.setState({drawer:true});return;}
+            this.setState({approvals:st.approvals.concat([{key,case:c.id,action:a[0],route,reason:a[2],exposure:money(c.exposure)}]),drawer:true});
+          }
+        }};
+    });
+
+    const approvals=st.approvals.map(a=>{
+      const ex=st.executed[a.key];
+      return Object.assign({},a,{
+        routeStyle:chip(RCOL[a.route]+'22',RCOL[a.route]),
+        approveStyle:{padding:'7px 13px',borderRadius:'7px',cursor:ex?'default':'pointer',border:'1px solid '+(ex?C.green+'55':'#ded6ca'),background:ex?C.green+'1a':'#f6f2ec',color:ex?C.green:'#1d1813',font:"600 10.5px/1 'JetBrains Mono'"},
+        approveLabel:ex?'✓ approved':'Approve as '+(a.route==='L2'?'fraud manager':'team lead'),
+        approve:()=>{const e=Object.assign({},this.state.executed);e[a.key]=1;this.setState({executed:e});}
+      });
+    });
+
+
+    // ---- views, pane, demo, answer file, monitor, ring ----
+    const VW=[['console','Console','i-window'],['monitor','Monitor','i-baseline'],['ring','Ring','i-ring']];
+    const views=VW.map(v=>{const on=st.view===v[0];return {label:v[1],icon:v[2],
+      style:{display:'flex',alignItems:'center',gap:'6px',padding:'6px 11px',border:'none',borderRadius:'6px',cursor:'pointer',
+        background:on?'#ffffff':'transparent',color:on?accent:'#6b6259',boxShadow:on?'0 1px 2px rgba(60,42,26,.12)':'none',
+        font:"600 10.5px/1 'Space Grotesk'",whiteSpace:'nowrap'},
+      pick:()=>this.setState({view:v[0]})};});
+
+    const gridCols=st.pane?'252px minmax(0,1fr) 404px':'252px minmax(0,1fr)';
+
+    const DEMO=[['ACT I','A real fraud. Testing ladder, new proxied device, shared across two more cards — probability climbs and BLOCK_CARD routes to L2.'],
+      ['ACT II','The trap. The model scored this 0.90. The recurring-charge probe and the trip-not-clone check drive it down to 0.07.'],
+      ['ACT III','The ring. Six cards, five customers, one fingerprint, eleven days — a pattern the policy does not document.']];
+    const dm=st.demo>=0?DEMO[st.demo]:null;
+
+    const AJ=JSON.stringify({case_id:c.id,case:{status:c.status,verdict:c.verdict,fraud_probability:c.p,pattern:c.pattern,
+      pattern_description:c.patdesc||"",affected_txn_ids:c.verdict==='legitimate'?[]:c.evidence[0][3],
+      first_suspicious_txn_id:c.verdict==='legitimate'?"":(c.evidence[0][3][0]||""),
+      connected_card_ids:c.verdict==='legitimate'?[]:(c.sar.subjects||[]).filter(s=>/^C\d{5}-K/.test(s)),
+      connected_device_profiles:c.verdict==='legitimate'?[]:(c.sar.subjects||[]).filter(s=>s.indexOf('DEV-')===0),
+      exposure_usd:c.exposure,evidence:c.evidence.map(e=>({claim:e[0],source:e[1],ref:e[2],entity_ids:e[3]})),
+      similar_prior_cases:c.memory.map(x=>x[0]).filter(x=>x.indexOf('CC-')===0),
+      summary:c.sar.file?c.sar.narrative.split(/\.\s/).slice(0,3).join('. ')+'.':c.stop,
+      written_to_graph:true,graph_case_id:'CASE-2016-'+(1100+st.sel)},
+      evidence_requests:c.steps.filter(s=>s[0].indexOf('request:')===0).map((s,i)=>({type:'customer_validation',asked_after_step:c.steps.indexOf(s)+1,assumed_response:s[4]})),
+      next_best_actions:{initial:c.initial.map(a=>({action:a[0],route:a[1],reason:a[2]})),
+        final:c.final.map(a=>({action:a[0],route:a[1],reason:a[2]})),what_changed:c.changed||'nothing'},
+      sar:c.sar.file?{file:true,reason:c.sar.reason,narrative:c.sar.narrative,subjects:c.sar.subjects,total_amount_usd:c.sar.amount,activity_dates:c.sar.dates}
+        :{file:false,reason:c.sar.reason,narrative:"",subjects:[],total_amount_usd:0,activity_dates:[]},
+      stop_reason:c.stop,tool_calls:c.steps.length+3,tokens:9800+st.sel*137,latency_s:+(11+st.sel*0.43).toFixed(1)},null,2);
+
+    const barsSeed=[7,9,6,11,8,14,10,7,19,12,9,8,13,22,11,9,7,15,10,26,12,8,11,9,14,10,7,12,18,9,8,11,24,10,9,13,7,16,11,8,12,29,10,9,7,14,11,8,20,12,9,11,8,15,10,23,9,12,8,10,17];
+    const monBars=barsSeed.map((v,i)=>{const h=Math.round(v*3.2),hot=v>=18;
+      return {x:i*20+4,y:96-h,h:h,fill:hot?C.red:'#e0d7c9'};});
+    const monMarks=barsSeed.map((v,i)=>v>=18?{x:i*20+11,y:96-Math.round(v*3.2)-9,fill:C.red}:null).filter(Boolean);
+
+    const monStats=[
+      {k:'SCANNED',v:'118,406',note:'Nov 1 – Dec 31 transactions',color:C.ink,icon:'i-baseline',iconStyle:{color:'#8a7f70'}},
+      {k:'ALERTS OPENED',v:'8',note:'above the calibrated open threshold',color:accent,icon:'i-alert',iconStyle:{color:accent}},
+      {k:'AUTO-CLEARED',v:'2',note:'closed without customer contact',color:C.green,icon:'i-check',iconStyle:{color:C.green}},
+      {k:'ESCALATED',v:'3',note:'routed L1 / L2 or to an analyst',color:C.red,icon:'i-bolt',iconStyle:{color:C.red}},
+      {k:'RINGS FOUND',v:'2',note:'components fitting no known pattern',color:C.violet,icon:'i-ring',iconStyle:{color:C.violet}}];
+
+    const monRows=MON_ROWS.map(r=>({id:r[0],date:r[1],trig:r[2].replace(/_/g,' '),pattern:r[3].replace(/_/g,' '),
+      p:r[4].toFixed(2),note:r[5],action:r[6],
+      color:r[4]>0.6?C.red:r[4]<0.25?C.green:C.amber,
+      trigChip:chip('#f3efe8','#6b6259'),
+      patChip:chip(r[3]==='undocumented'?C.violet+'1f':r[3]==='none'?'#e6f4ec':'#fce9ed',r[3]==='undocumented'?C.violet:r[3]==='none'?C.green:C.red),
+      actChip:chip(RCOL[r[7]]+'1f',RCOL[r[7]])}));
+
+    const ringNodes=RING_NODES.map(n=>({x:n[0],y:n[1],r:n[2],fill:C[n[3]]+'26',stroke:C[n[3]],label:n[4],sub:n[5],ty:n[1]+n[2]+24,ty2:n[1]+n[2]+42}));
+    const ringEdges=RING_EDGES.map(e=>({x1:RING_NODES[e[0]][0],y1:RING_NODES[e[0]][1],x2:RING_NODES[e[1]][0],y2:RING_NODES[e[1]][1],
+      stroke:C.red+'55',w:2,dash:'7 7',anim:{animation:'trace 2.4s linear infinite'}}));
+    const ringStats=[{k:'CARDS',v:'6',color:C.ink},{k:'CUSTOMERS',v:'5',color:C.ink},
+      {k:'COHESION',v:'0.81',color:C.red},{k:'WINDOW',v:'11 d',color:C.ink},
+      {k:'EXPOSURE',v:'$5,074',color:C.red},{k:'KNOWN PATTERN',v:'none',color:C.violet}];
+    const ringMembers=RING_MEMBERS.map(r=>({id:r[0],amt:typeof r[1]==='number'?(r[1]?money(r[1]):'—'):r[1],tag:r[2],
+      icon:r[2]==='device'?'i-device':r[2]==='channel'?'i-mail':'i-card',
+      iconStyle:{color:C[r[3]]},chip:chip(C[r[3]]+'1f',C[r[3]])}));
+
+    return {
+      views,paneStyle:st.pane?{width:'404px',minHeight:0,display:'flex',flexDirection:'column',borderLeft:'1px solid #e8e2d9',background:'#ffffff'}:{display:'none'},isConsole:st.view==='console',isMonitor:st.view==='monitor',isRing:st.view==='ring',
+      togglePane:()=>{this.paneTouched=true;this.setState({pane:!st.pane});},
+      pillStyle:st.narrow?{display:'none'}:{flex:'none',display:'flex',alignItems:'center',gap:'7px',padding:'5px 10px',border:'1px solid #e8e2d9',borderRadius:'7px',background:'#f6f2ec',whiteSpace:'nowrap'},
+      paneLabel:st.pane?'hide graph ›':'‹ graph',
+      paneBtn:{flex:'none',alignSelf:'center',padding:'7px 11px',border:'1px solid #ded6ca',borderRadius:'7px',background:'#ffffff',color:'#6b6259',font:"600 9.5px/1 'JetBrains Mono'",cursor:'pointer',whiteSpace:'nowrap'},
+      toggleDemo:()=>this.toggleDemoFn(),
+      demoLabel:st.demo>=0?'Stop demo':'Run demo',
+      demoBtn:{display:'flex',alignItems:'center',gap:'7px',padding:'8px 13px',borderRadius:'7px',cursor:'pointer',whiteSpace:'nowrap',
+        border:'1px solid '+(st.demo>=0?accent:'#ded6ca'),background:st.demo>=0?accent:'#f6f2ec',color:st.demo>=0?'#ffffff':'#2e2822',font:"600 11px/1 'Space Grotesk'"},
+      demoCaption:dm?dm[1]:null,demoAct:dm?dm[0]:'',demoActChip:chip(accent,'#ffffff'),
+      answerJson:AJ,jsonState:'schema-valid',jsonChip:chip(C.green+'1f',C.green),
+      monStats,monBars,monMarks,monRows,monChip:chip(C.green+'1f',C.green),monState:'sweep complete',
+      monHead:['ALERT','DATE','TRIGGER','PATTERN','P','FINDING','ACTION'],
+      ringNodes,ringEdges,ringStats,ringMembers,
+      ringDesc:'Six cards held by five unconnected customers transacted from one anomalous device fingerprint inside eleven days, with four of them routing to a single recipient-email domain. It is not card testing, not takeover, not out-of-region use — it is a shared monetisation pipeline. Found by running Louvain over the device–email–region projection and keeping components that are multi-customer, time-concentrated, and match no documented signature.',
+      tally,queue,tabs,sel:{
+        id:c.id,trigger:c.trigger.replace('_',' '),trigText:c.trigText,
+        verdict:done?c.verdict:'investigating',pattern:c.pattern.replace(/_/g,' '),
+        exposure:money(done?c.exposure:0),pText:p.toFixed(2),color:col,dash:157*(1-p),
+        stepLabel:'step '+Math.min(st.step||1,c.steps.length)+' of '+c.steps.length,
+        summary:c.sar.file?c.sar.narrative.split('. ').slice(0,3).join('. ')+'.':c.steps[2][4]+' '+c.steps[3][4],
+        chipStyle:chip(done?VCOL[c.verdict]+'22':'#f2ede5',done?VCOL[c.verdict]:'#6b6259'),
+        trigChip:chip('#f3efe8','#6b6259'),patChip:chip(c.pattern==='undocumented'?C.violet+'22':'#f3efe8',c.pattern==='undocumented'?C.violet:'#6b6259'),
+        facts:[{k:'VERDICT',v:done?c.verdict:'…',color:done?VCOL[c.verdict]:C.dim},{k:'PATTERN',v:c.pattern,color:C.ink},{k:'EXPOSURE',v:money(c.exposure),color:c.exposure>2500?C.red:C.ink},{k:'GRAPH WRITE',v:done?'CASE-2016-'+(1100+st.sel):'pending',color:done?C.green:C.dim}]
+      },
+      isTimeline:st.tab==='timeline',isCase:st.tab==='case',isSar:st.tab==='sar',isMemory:st.tab==='memory',isJson:st.tab==='json',
+      steps,running:st.running,stopReason:done?c.stop:null,
+      traj:pts.map(q=>q.x+','+q.y).join(' '),trajPts:pts,askX:(done&&askIdx>0)?+X(askIdx).toFixed(1):null,
+      evidence:c.evidence.map(e=>({claim:e[0],ref:e[2],ids:e[3],srcIcon:SRC[e[1]][0],srcStyle:{color:SRC[e[1]][1],flex:'none',marginTop:'2px'}})),
+      sar:c.sar.file?{file:true,none:false,narrative:c.sar.narrative,subjects:c.sar.subjects,meta:[{k:'TOTAL AMOUNT',v:money(c.sar.amount)},{k:'ACTIVITY DATES',v:c.sar.dates[0]+' → '+c.sar.dates[1]},{k:'SUBJECTS',v:c.sar.subjects.length+' entities'}]}:{file:false,none:true,reason:c.sar.reason},
+      memory:c.memory.map(m=>{const t=m[1],cl=t==='cleared'?C.green:t==='sentinel'?C.blue:t==='undocumented'?C.violet:C.red;
+        return {id:m[0],tag:t,why:m[2],sim:(m[3]*100).toFixed(0)+'% match',icon:t==='sentinel'?'i-hex':'i-memory',iconStyle:{color:cl,flex:'none'},border:t==='sentinel'?C.blue+'55':'#e8e2d9',tagStyle:chip(cl+'22',cl),barStyle:{height:'100%',width:(m[3]*100)+'%',background:cl,borderRadius:'3px'}};}),
+      nodes,edges,focus,hunt,graphCount:nodes.length+' nodes · '+edges.length+' edges',
+      legend:[{k:'card',c:C.blue},{k:'txn',c:C.txn},{k:'fraud',c:C.red},{k:'cleared',c:C.green},{k:'memory',c:C.violet}],
+      actions,whatChanged:(done&&st.phase==='final')?c.changed:null,
+      initBtn:{padding:'5px 11px',border:'none',borderRadius:'5px',cursor:'pointer',background:st.phase==='initial'?'#fde7d5':'transparent',color:st.phase==='initial'?C.ink:C.faint,font:"600 10px/1 'JetBrains Mono'"},
+      finalBtn:{padding:'5px 11px',border:'none',borderRadius:'5px',cursor:'pointer',background:st.phase==='final'?'#fde7d5':'transparent',color:st.phase==='final'?C.ink:C.faint,font:"600 10px/1 'JetBrains Mono'"},
+      showInitial:()=>this.setState({phase:'initial'}),showFinal:()=>this.setState({phase:'final'}),
+      drawer:st.drawer,approvals,noApprovals:st.approvals.length===0,apprCount:st.approvals.length,apprBadge:st.approvals.length?C.amber:'#ded6ca',
+      toggleDrawer:()=>this.setState({drawer:!st.drawer}),closeDrawer:()=>this.setState({drawer:false}),stop:e=>e.stopPropagation(),
+      runAll:()=>{const r={};CASES.forEach((x,i)=>r[i]=true);this.setState({ran:r});}
+    };
+  }
+}
+
+</script>
+</body>
+</html>
