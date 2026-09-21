@@ -13,6 +13,7 @@ Built for the TigerGraph Agentic Fraud Investigation challenge, Hacker House Goa
 | Path | What |
 |---|---|
 | [Guide.md](Guide.md) | **The organiser's brief** — the spec this build answers to. Described [below](#guidemd--the-organisers-brief) |
+| **[docs/system/STATUS.md](docs/system/STATUS.md)** | **Where the build stands right now, and everything remaining** |
 | **[docs/system/](docs/system/)** | **The v2 design set — the system being built now** |
 | [docs/system/PRD.md](docs/system/PRD.md) | Product requirements: principles, users, FR/NFR, scoring map |
 | [docs/system/HLD.md](docs/system/HLD.md) | Architecture: containers, components, flows, nine ADRs |

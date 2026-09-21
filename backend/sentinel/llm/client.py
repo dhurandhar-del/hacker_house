@@ -30,6 +30,10 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
 
+#: How far an output budget may be doubled when a reply is truncated. Past this
+#: the prompt is asking for too much and the answer would not be readable anyway.
+MAX_OUTPUT_CEILING = 4_000
+
 #: Per-million-token prices, USD. Unknown models cost 0 rather than guessing —
 #: a wrong price is worse than an absent one, because the budget guard trusts it.
 PRICING: dict[str, tuple[float, float]] = {
@@ -199,7 +203,22 @@ class LlmClient:
             completion_tokens = usage.completion_tokens if usage else 0
             cost = self.meter.charge(self.model, prompt_tokens, completion_tokens)
 
-            content = completion.choices[0].message.content or ""
+            choice = completion.choices[0]
+            content = choice.message.content or ""
+
+            # Truncation is not a schema problem and must not be retried as one.
+            # Measured: the exoneration agent overran 700 output tokens, the JSON
+            # was cut mid-string, and four identical retries burned 19k tokens
+            # before falling back. Give it room instead of asking again.
+            if choice.finish_reason == "length" and attempt < self.settings.openai_max_retries:
+                max_output_tokens = min(max_output_tokens * 2, MAX_OUTPUT_CEILING)
+                logger.warning(
+                    "%s: reply hit the output ceiling; retrying with %d tokens",
+                    purpose,
+                    max_output_tokens,
+                )
+                continue
+
             try:
                 value = schema.model_validate_json(content)
             except ValidationError as exc:
@@ -303,9 +322,13 @@ def _inline(node: Any, defs: dict[str, Any]) -> Any:
 def _strictify(node: Any) -> Any:
     if isinstance(node, dict):
         out = {k: _strictify(v) for k, v in node.items()}
-        if out.get("type") == "object" and "properties" in out:
+        if out.get("type") == "object":
+            # Strict mode closes every object, including one with no declared
+            # properties -- which is why a free-form dict cannot be expressed
+            # and must not appear in an agent's schema.
             out["additionalProperties"] = False
-            out["required"] = list(out["properties"])
+            if "properties" in out:
+                out["required"] = list(out["properties"])
         # Pydantic emits these; strict mode rejects them.
         for unsupported in ("default", "title", "examples"):
             out.pop(unsupported, None)

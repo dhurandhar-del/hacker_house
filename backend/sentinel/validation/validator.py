@@ -36,6 +36,10 @@ class Finding:
     def __str__(self) -> str:
         return f"{self.path}: {self.message}"
 
+    def as_dict(self) -> dict[str, str]:
+        """The wire form: the SSE validation event and the API problem detail."""
+        return {"code": self.code, "path": self.path, "message": self.message}
+
 
 @dataclass(slots=True)
 class ValidationReport:

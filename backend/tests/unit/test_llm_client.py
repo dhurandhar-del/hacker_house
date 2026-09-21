@@ -116,6 +116,7 @@ class _StubCompletions:
     def __init__(self, replies: list[str | Exception]) -> None:
         self.replies = replies
         self.calls: list[dict[str, Any]] = []
+        self.finish_reasons: list[str] = []
 
     async def create(self, **kwargs: Any) -> Any:
         self.calls.append(kwargs)
@@ -126,8 +127,15 @@ class _StubCompletions:
         class _Message:
             content = reply
 
+        reason = (
+            self.finish_reasons[len(self.calls) - 1]
+            if len(self.calls) <= len(self.finish_reasons)
+            else "stop"
+        )
+
         class _Choice:
             message = _Message()
+            finish_reason = reason
 
         class _Completion:
             def __init__(self) -> None:
@@ -198,6 +206,30 @@ async def test_a_reply_that_never_satisfies_the_schema_raises():
     client, _ = client_with(['{"pattern":"nonsense"}'] * 6)
     with pytest.raises(StructuredOutputError, match="did not satisfy"):
         await client.complete(purpose="claims", system="s", user="u", schema=Assessment)
+
+
+async def test_a_truncated_reply_is_retried_with_a_bigger_budget():
+    """Truncation is not a schema violation and must not be retried as one.
+
+    Measured against the live model: the defence agent overran 700 output
+    tokens, its JSON was cut mid-string, and four identical retries burned 19k
+    tokens before falling back.
+    """
+    client, stub = client_with(
+        [
+            '{"pattern":"none","pattern_description":"","claims":[],"summary":"trunc',
+            '{"pattern":"none","pattern_description":"","claims":[],"summary":"ok"}',
+        ]
+    )
+    stub.completions.finish_reasons = ["length", "stop"]
+    out = await client.complete(
+        purpose="claims", system="s", user="u", schema=Assessment, max_output_tokens=700
+    )
+    assert out.value.pattern is Pattern.NONE
+    first, second = stub.completions.calls
+    assert second["max_completion_tokens"] == 1400, "the budget doubles"
+    # And it does NOT feed back a schema error, because the schema was fine.
+    assert len(second["messages"]) == len(first["messages"])
 
 
 async def test_an_api_failure_becomes_the_systems_own_error_type():

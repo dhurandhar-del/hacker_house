@@ -160,6 +160,11 @@ class PolicyEngine:
         self._gates = tuple(gates)
         self._config = config
 
+    @property
+    def config(self) -> PolicyConfig:
+        """The thresholds this engine was built with, so collaborators share them."""
+        return self._config
+
     def decide(self, state: CaseState) -> list[Recommendation]:
         """The ordered recommendations for one investigation state."""
         return self.evaluate(state).recommendations

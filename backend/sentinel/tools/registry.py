@@ -262,6 +262,10 @@ class ToolRegistry:
     def names(self) -> list[str]:
         return list(self._tools)
 
+    def catalogue(self) -> tuple[GraphTool, ...]:
+        """The registered tools themselves, for a planner that needs their questions."""
+        return tuple(self._tools.values())
+
     def get(self, name: str) -> GraphTool:
         try:
             return self._tools[name]
