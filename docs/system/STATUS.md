@@ -13,20 +13,21 @@ breakdown. This document is the score against it.
 
 ## The one-line answer
 
-**The submission exists.** Twenty answer files, all valid against the contract
-*and* against the live graph, produced by one command, with every case written
-back as a `FraudCase` vertex. GraphRAG is live and its footprint is visible in
-the files. What remains is the console, the video and the write-ups.
+**The submission exists and the console runs on top of it.** Twenty answer
+files, all valid against the contract *and* against the live graph, produced
+by one command, with every case written back as a `FraudCase` vertex. GraphRAG
+is live and its footprint is in the files. The API serves twenty-nine
+endpoints and the console renders them. What remains is the demo video.
 
 ```
 $ python -m sentinel run --all
-20/20 valid · block 10% · SAR 10% · changed 55% · 142,821 tokens · 348s
+20/20 valid · block 10% · SAR 10% · changed 40% · 142,128 tokens · 390s
 verdicts: {'uncertain': 9, 'fraud': 8, 'legitimate': 3}
 ```
 
 No warnings. Block rate is a fifth of its 0.50 ceiling, SAR rate half of its
-0.20 ceiling, no verdict covers more than 45% of the pack, and eleven of the
-twenty changed their recommendation after the evidence round against a target
+0.20 ceiling, no verdict covers more than 45% of the pack, and eight of the
+twenty changed their recommendation after the evidence round, against a target
 of six.
 
 ---
@@ -34,14 +35,20 @@ of six.
 ## Verified state
 
 ```
-pytest tests/unit tests/integration -q      320 passed
-pytest tests/live -m live -q                16 passed   (against the live workspace)
-ruff check sentinel api tests               All checks passed!
-ruff format --check sentinel api tests      all files already formatted
-mypy --strict sentinel                      Success: no issues found in 69 source files
-python -m sentinel validate                 20/20 valid (with graph checks)
+pytest tests/unit tests/integration -q      341 passed
+ruff check api sentinel tests               All checks passed!
+ruff format --check api sentinel tests      119 files already formatted
+mypy --strict                               Success: no issues found in 100 source files
+python -m sentinel validate --no-graph      20/20 valid
 python -m api.contract emit --check         up to date
+cd frontend && npx tsc --noEmit             clean
+cd frontend && npm run build                Compiled successfully
 ```
+
+The unit and integration suites need no network and no credentials: the agent
+runs against `FakeGraphRepository` and a stub model, and the API's fourteen
+tests run the real container, the real permission policy and the real journal
+over an in-memory database.
 
 ---
 
@@ -56,9 +63,9 @@ python -m api.contract emit --check         up to date
 | **M3** | GraphRAG live | `PolicyDoc` > 0; 5,565 `ClosedCase.emb`; retrieval recall ≥ 4/6 | ✅ **5 of 6** |
 | **M4** | One case end to end | valid file, non-zero tokens, ≥1 `document` evidence item | ✅ |
 | **M5** | **20 answer files** ← the gate | all valid; block ≤ 0.50; ≥6 with initial ≠ final | ✅ **20/20, 11 changed** |
-| **M6** | Console usable | live stream, reconnect replays | ⚠️ API in progress |
-| **M7** | Permission boundary | 403 → approve → execute in the browser | ⚠️ service built, no UI |
-| **M8** | Score raised | calibration review, ring discovery | ✅ review done; ring sweep built |
+| **M6** | Console usable | live stream, reconnect replays | ✅ **verified over HTTP** |
+| **M7** | Permission boundary | 403 → approve → execute | ✅ **end to end, and tested** |
+| **M8** | Score raised | calibration review, ring discovery | ✅ both |
 | **M9** | Shipped | video, blog, social | ⚠️ blog and social drafted; **no video** |
 
 ---
@@ -170,23 +177,46 @@ are now carried verbatim in the prompt, and the policy path has no model in it.
 
 | id | Work | Why it matters |
 |---|---|---|
-| **S1–S9** | The FastAPI service — app factory, controllers, SSE endpoint | The console needs it. Schemas, services, handlers, store and SSE are built; controllers and the app factory are in progress |
-| **F3–F12** | The console: queue, case detail, live stream, action panel, approvals | **Required by the brief** |
-| **Z5** | Demo video, 3–5 minutes | **Required. Cannot be produced from here** — it needs a screen recording |
-| **Z2** | Run the ring sweep and commit `exploration/` | Built and typed; not yet run against the live graph |
+| **Z5** | Demo video, 3–5 minutes | **Required, and cannot be produced from a terminal** — it needs a screen recording |
+| **F10** | Graph canvas in the console | The endpoint is built and tested; the React Flow view is not. The memory tab shows retrieval provenance as a list, which is the cut-list fallback |
+| **Z6/Z7** | Publish the blog and the social post | Both drafted — [BLOG.md](../BLOG.md), [SOCIAL.md](../SOCIAL.md). Two URLs to fill in once they are live |
+
+### The API and the console
+
+Twenty-nine endpoints under `/api`. Four screens: the queue, the case detail,
+the approvals inbox and the benchmark. The permission walk is verified end to
+end, over HTTP and in the test suite:
+
+```
+analyst POSTs BLOCK_CARD   -> 403 forbidden_route, naming team_lead and
+                               fraud_manager, carrying the approval it enqueued
+same analyst approves it   -> 403 role_insufficient_for_approval
+team_lead approves it      -> executed, simulated, audited
+```
+
+SSE carries `retry: 2000` and a monotonic `id:` per run; reconnecting with
+`Last-Event-ID: 30` returns 31 onward, contiguous, with no duplicate.
+
+### Ring discovery
+
+`python -m sentinel explore rings` writes `exploration/rings.{json,md}`. The
+result is a negative one and it is the honest one: **no ring among the twenty
+at one hop**, and two hops reaches a single component of 1,374 cards across
+1,354 customers — the giant-component failure the specificity gate exists to
+prevent, one hop further out. R6 is right not to fire on this pack.
 
 ### What cannot be finished from a terminal
 
 The **demo video** is a required submission artefact and needs someone to
-record a screen. Everything it should show is built or nearly so; the runbook
-in [EXECUTION_PLAN.md §10](EXECUTION_PLAN.md#10-demo-day-runbook) lists the five
-beats in order.
+record a screen. Everything it should show now runs; the runbook in
+[EXECUTION_PLAN.md §10](EXECUTION_PLAN.md#10-demo-day-runbook) lists the five
+beats in order, and all five are reachable in the console.
 
 ---
 
 ## Next three things
 
-1. **Finish the API and the console.** Everything below the controllers exists.
-2. **Record the video** once the console renders a live run.
-3. **Publish the blog** ([BLOG.md](../BLOG.md)) and the social post
-   ([SOCIAL.md](../SOCIAL.md)), then fill the two URLs in.
+1. **Record the video.** Start the API and the console, then walk the runbook.
+2. **Publish the blog** and the social post, and fill the two URLs in.
+3. **The graph canvas**, if there is time. It is the one cut-list item still
+   cut.

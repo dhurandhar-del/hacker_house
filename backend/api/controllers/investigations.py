@@ -326,6 +326,7 @@ class InvestigationService:
                     "recoverable": True,
                 },
             )
+            await emitter.aclose()
             await self._mark(
                 handle.run_id,
                 status=RunStatus.CANCELLED,
@@ -340,6 +341,7 @@ class InvestigationService:
                 "run.failed",
                 {"code": exc.code, "message": exc.message, "recoverable": False},
             )
+            await emitter.aclose()
             await self._mark(
                 handle.run_id,
                 status=RunStatus.FAILED,
@@ -348,8 +350,16 @@ class InvestigationService:
             )
             raise
         else:
+            # Drain BEFORE the row says the run finished, for two reasons. A
+            # client that polls the row and then fetches the journal would
+            # otherwise race the tail of its own run; and `_finish` reads the
+            # step number and the budget back *out* of the journal, so a
+            # half-drained one gives it the wrong answers.
+            await emitter.aclose()
             await self._finish(handle.run_id, outcome)
         finally:
+            # Idempotent: every branch above has already drained, and this
+            # catches any path that did not reach one.
             await emitter.aclose()
             self._c.runs.release(handle.run_id)
 
