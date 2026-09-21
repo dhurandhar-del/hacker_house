@@ -1,5 +1,10 @@
 # Sentinel — Step-by-Step Build Plan
 
+> **Steps 0–6 are done; remaining work has moved.** Steps 7–10 are superseded by
+> [docs/system/EXECUTION_PLAN.md](system/EXECUTION_PLAN.md), which replaces the LangGraph
+> agent of Step 7 with the class-based orchestrator in [system/LLD.md](system/LLD.md).
+> The exit-test discipline below is carried forward unchanged.
+
 Companion to [PRD.md](PRD.md). Ordered so that a **complete, submittable twenty-case answer set exists by the end of Step 7**. Everything after that raises the score; nothing after that is load-bearing.
 
 Rule for the whole build: **never work on two layers at once**. Graph before tools, tools before agent, agent before UI. Each step below has an exit test. Do not move on until it passes.

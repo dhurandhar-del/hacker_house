@@ -13,9 +13,16 @@ Built for the TigerGraph Agentic Fraud Investigation challenge, Hacker House Goa
 | Path | What |
 |---|---|
 | [Guide.md](Guide.md) | **The organiser's brief** — the spec this build answers to. Described [below](#guidemd--the-organisers-brief) |
-| [docs/SESSION_SUMMARY.md](docs/SESSION_SUMMARY.md) | Everything built so far, and what is left |
-| [docs/PRD.md](docs/PRD.md) | The product: problem, principles, architecture, graph model, intelligence layer, UI, scoring map |
-| [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) | Eleven build steps, each with an exit test |
+| **[docs/system/](docs/system/)** | **The v2 design set — the system being built now** |
+| [docs/system/PRD.md](docs/system/PRD.md) | Product requirements: principles, users, FR/NFR, scoring map |
+| [docs/system/HLD.md](docs/system/HLD.md) | Architecture: containers, components, flows, nine ADRs |
+| [docs/system/LLD.md](docs/system/LLD.md) | Class-level design with mermaid class diagrams, algorithms, test matrix |
+| [docs/system/TECHNICAL.md](docs/system/TECHNICAL.md) | Engineering handbook: stack, setup, API, SSE, tools, runbook |
+| [docs/system/EXECUTION_PLAN.md](docs/system/EXECUTION_PLAN.md) | Every remaining task, tracks, milestones, risks, cut list |
+| [frontend/DESIGN_SYSTEM.md](frontend/DESIGN_SYSTEM.md) | Frontend design system: tokens, semantics, components, a11y |
+| [docs/SESSION_SUMMARY.md](docs/SESSION_SUMMARY.md) | Everything built in v1, and what is left |
+| [docs/PRD.md](docs/PRD.md) | The v1 product doc — **superseded by [docs/system/PRD.md](docs/system/PRD.md)**, kept as the record of how the base was built |
+| [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) | The v1 build plan, steps 0–6 done — **superseded for remaining work by [docs/system/EXECUTION_PLAN.md](docs/system/EXECUTION_PLAN.md)** |
 | [docs/LOADING.md](docs/LOADING.md) | How the data gets into TigerGraph, and what had to be derived |
 | [docs/HAND_INVESTIGATION.md](docs/HAND_INVESTIGATION.md) | HHG-003 worked by hand, and the detector list it produced |
 | [docs/TOOLS_AND_MCP.md](docs/TOOLS_AND_MCP.md) | The 16 GSQL queries and the MCP wiring |
